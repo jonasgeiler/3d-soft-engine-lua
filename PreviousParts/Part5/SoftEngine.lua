@@ -235,7 +235,7 @@ function SoftEngine.Device:render(camera, meshes)
 			local pixelB = self:project(vertexB, transformMatrix, worldMatrix)
 			local pixelC = self:project(vertexC, transformMatrix, worldMatrix)
 			
-			local color = 255
+			local color = 1
 		
 			self:drawTriangle(pixelA, pixelB, pixelC, BABYLON.Color4(color, color, color, 255))
 		end
