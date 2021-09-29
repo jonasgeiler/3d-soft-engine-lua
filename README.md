@@ -1,6 +1,6 @@
 # Lua - 3D Soft Engine
 
-A simple 3D Software Engine made in Lua with [LÖVE2D](https://love2d.org/) (Version 0.10.2).
+A simple 3D Software Engine made in Lua with [LÖVE2D](https://love2d.org/) (tested with version 0.11.3b).
 
 I followed this tutorial by David Rousset, and translated it to Lua:
 [Link to tutorial](<https://www.davrous.com/2013/06/13/tutorial-series-learning-how-to-write-a-3d-soft-engine-from-scratch-in-c-typescript-or-javascript/>)
