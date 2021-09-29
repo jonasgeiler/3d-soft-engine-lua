@@ -178,7 +178,6 @@ function SoftEngine.Device:render(camera, meshes)
 			local pixelC = self:project(vertexC, transformMatrix)
 			
 			local color = 0.25 + ((k % #cMesh.faces) / #cMesh.faces) * 0.75
-			color = BABYLON.remap(color, 0, 1, 0, 255)
 		
 			self:drawTriangle(pixelA, pixelB, pixelC, BABYLON.Color4(color, color, color, 255))
 		end
