@@ -3,6 +3,7 @@ local mesh = require('lib.mesh')
 local camera = require('lib.camera')
 local device = require('lib.device')
 local vec3 = require('lib.vec3')
+local face = require('lib.face')
 
 local window = fenster.open(640, 480, '3D Soft Engine')
 
@@ -14,11 +15,25 @@ local cube = mesh({
 	vec3(-1, 1, 1),
 	vec3(1, 1, 1),
 	vec3(-1, -1, 1),
-	vec3(-1, -1, -1),
+	vec3(1, -1, 1),
 	vec3(-1, 1, -1),
 	vec3(1, 1, -1),
-	vec3(1, -1, 1),
 	vec3(1, -1, -1),
+	vec3(-1, -1, -1),
+}, {
+	face(1, 2, 3),
+	face(2, 3, 4),
+	face(2, 4, 7),
+	face(2, 6, 7),
+	face(1, 2, 5),
+	face(2, 5, 6),
+
+	face(3, 4, 8),
+	face(4, 7, 8),
+	face(1, 3, 8),
+	face(1, 5, 8),
+	face(5, 6, 7),
+	face(5, 7, 8),
 })
 meshes[#meshes + 1] = cube
 
