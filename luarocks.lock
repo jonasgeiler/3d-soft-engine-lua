@@ -1,5 +1,6 @@
 return {
    dependencies = {
+      dkjson = "2.7-1",
       fenster = "1.0.1-1",
       lua = "5.1-1"
    },

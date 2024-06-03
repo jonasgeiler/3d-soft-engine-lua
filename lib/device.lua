@@ -1,8 +1,14 @@
+local assert = assert
+local io = io
+local type = type
 local math = math
 local class = require('lib.class')
 local vec2 = require('lib.vec2')
 local vec3 = require('lib.vec3')
 local matrix = require('lib.matrix')
+local dkjson = require('dkjson')
+local mesh = require('lib.mesh')
+local face = require('lib.face')
 
 ---Represents the rendering device (window)
 ---@class device
@@ -62,7 +68,7 @@ function device:draw_point(point)
 	-- Clipping what's visible on screen
 	if point.x >= 0 and point.y >= 0 and point.x < self.width and point.y < self.height then
 		-- Drawing a yellow point
-		self:put_pixel(math.floor(point.x), math.floor(point.y), 0xffff00)
+		self:put_pixel(point.x, point.y, 0xffff00)
 	end
 end
 
@@ -157,10 +163,10 @@ function device:render(camera, meshes)
 		local transform_matrix = world_matrix * view_matrix * projection_matrix
 
 		for fi = 1, #curr_mesh.faces do
-			local cur_face = curr_mesh.faces[fi]
-			local vertex_a = curr_mesh.vertices[cur_face.a]
-			local vertex_b = curr_mesh.vertices[cur_face.b]
-			local vertex_c = curr_mesh.vertices[cur_face.c]
+			local curr_face = curr_mesh.faces[fi]
+			local vertex_a = curr_mesh.vertices[curr_face.a]
+			local vertex_b = curr_mesh.vertices[curr_face.b]
+			local vertex_c = curr_mesh.vertices[curr_face.c]
 
 			local point_a = self:project(vertex_a, transform_matrix)
 			local point_b = self:project(vertex_b, transform_matrix)
@@ -171,6 +177,78 @@ function device:render(camera, meshes)
 			self:draw_b_line(point_c, point_a)
 		end
 	end
+end
+
+---Loading the JSON file in an asynchronous manner and calling back with the function passed providing the array of meshes loaded
+---@param filename string
+---@return table
+function device:load_json_file(filename)
+	local file = assert(io.open(filename, 'r'))
+	local json_object = dkjson.decode(file:read('*all'))
+	file:close()
+
+	-- Validate the JSON object
+	assert(type(json_object) == 'table', 'Error loading JSON file: ' .. filename)
+
+	return json_object
+end
+
+---Create meshes from a JSON object
+---@param json_object table
+---@return mesh[]
+function device:create_meshes_from_json(json_object)
+	local meshes = {} ---@type mesh[]
+	for mi = 1, #json_object.meshes do
+		local vertices = json_object.meshes[mi].vertices ---@type number[]
+		local indices = json_object.meshes[mi].indices ---@type integer[]
+		local uv_count = json_object.meshes[mi].uvCount ---@type number
+
+		-- Depending of the number of texture's coordinates per vertex
+		-- we're jumping in the vertices array  by 6, 8 & 10 windows frame
+		local vertices_step = 1
+		if uv_count == 0 then
+			vertices_step = 6
+		elseif uv_count == 1 then
+			vertices_step = 8
+		elseif uv_count == 2 then
+			vertices_step = 10
+		end
+
+		-- The number of interesting vertices information for us
+		local vertices_count = #vertices / vertices_step
+
+		-- Number of faces is logically the size of the array divided by 3 (A, B, C)
+		local faces_count = #indices / 3
+
+		local new_mesh = mesh()
+		-- Filling the vertices array of our mesh first
+		for vi = 1, vertices_count do
+			new_mesh.vertices[vi] = vec3(
+				vertices[(vi - 1) * vertices_step + 1],
+				vertices[(vi - 1) * vertices_step + 2],
+				vertices[(vi - 1) * vertices_step + 3]
+			)
+		end
+		-- Then filling the faces array
+		for fi = 1, faces_count do
+			new_mesh.faces[fi] = face(
+				indices[(fi - 1) * 3 + 1] + 1,
+				indices[(fi - 1) * 3 + 2] + 1,
+				indices[(fi - 1) * 3 + 3] + 1
+			)
+		end
+
+		-- Getting the position of the mesh
+		new_mesh.position = vec3(
+			json_object.meshes[mi].position[1],
+			json_object.meshes[mi].position[2],
+			json_object.meshes[mi].position[3]
+		)
+
+		meshes[#meshes + 1] = new_mesh
+	end
+
+	return meshes
 end
 
 return device

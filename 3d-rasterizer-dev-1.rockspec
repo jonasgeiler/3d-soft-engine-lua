@@ -10,6 +10,7 @@ description = {
 dependencies = {
 	'lua 5.1',
 	'fenster 1.0.1',
+	'dkjson 2.7',
 }
 build = {
 	type = 'none',
