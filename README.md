@@ -10,14 +10,13 @@ Some time ago I wanted to learn more about 3D rasterizers, so I read this tutori
 
 ## Screenshot
 
-![Screenshot](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/f75c0417-f575-44a1-a5a9-134cc3ccf6ca)
+![Screenshot](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/ef0aa781-04f8-4821-a6d3-cf0df37b38ab)
 
 ## To Do
 
 - [X] Part 1 - Writing the core logic for camera, mesh & device object
 - [X] Part 2 - Drawing lines and triangles to obtain a wireframe rendering
 - [X] Part 3 - Loading meshes exported from Blender in a JSON format
-- [ ] Part 4 - Filling the triangle with rasterization and using a Z-Buffer
-  - [ ] Bonus: Using tips & parallelism to boost the performance
+- [X] Part 4 - Filling the triangle with rasterization and using a Z-Buffer
 - [ ] Part 5 - Handling light with Flat Shading & Gouraud Shading
 - [ ] Part 6 - Applying textures, back-face culling and WebGL
