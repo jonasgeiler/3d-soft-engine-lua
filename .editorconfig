@@ -1,0 +1,73 @@
+# EditorConfig configuration
+# See: https://editorconfig.org
+
+# Marks this editorconfig file as the top-most one.
+root = true
+
+
+# Applies to all files and acts as a fallback/default for the other sections.
+[*]
+
+# Use tabs everywhere (they are more flexible than spaces since they can be set to any width you want)
+indent_style = tab
+
+# Use the `tab_width` setting as the width of the indent
+indent_size = tab
+
+# (This is left out so editor settings are used)
+#tab_width = 4
+
+# Use Unix line endings (they are the most widely supported and are the default in Git/Prettier)
+end_of_line = lf
+
+# Use UTF-8 (it's the universal standard)
+charset = utf-8
+
+# Remove trailing whitespaces (they are a bit annoying most of the time)
+trim_trailing_whitespace = true
+
+# Add a newline at the end of files (it's a good practice and helps when adding new content to a file)
+insert_final_newline = true
+
+# Force a hard wrap at 80 columns (not supported by all editors but it's a good practice and helps when doing split screen)
+max_line_length = 80
+
+
+# Applies to all files that shouldn't use tabs.
+# These are mostly files that are enforced to use spaces in some way (e.g. YAML files always use spaces and PNPM automatically uses spaces in package.json).
+[*.{json,yml,yaml,md,mdx}]
+
+# Use spaces instead of tabs for these files
+indent_style = space
+
+# Set the width of the indent to 2 spaces (YAML and PNPM use 2 spaces so it's a good default)
+indent_size = 2
+
+
+# Applies to all files that shouldn't have a newline at the end.
+# These are mostly files that are software written or always end with a specific line.
+[*.{json,ppm}]
+
+# Don't add a newline at the end of these files
+insert_final_newline = false
+
+
+# Applies to all files that should keep trailing whitespaces.
+# This currently only applies to Markdown files since 2 spaces are used there to force a line break.
+[*.{md,mdx}]
+
+# Don't remove trailing whitespaces in these files
+trim_trailing_whitespace = false
+
+
+# This defines a specifc code style for Lua, and the rules specified here are only compatible with Sumneko's Lua Language Server.
+[*.lua]
+
+# Use single quotes for strings
+quote_style = single
+
+# Add trailing commas in tables (when not in single line)
+trailing_table_separator = smart
+
+# Don't align variable assignemnt values
+align_continuous_assign_statement = false
