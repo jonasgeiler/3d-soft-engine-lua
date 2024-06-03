@@ -6,6 +6,14 @@
 
 # IDE
 .idea
+.vscode
+!/.vscode/extensions.json
 
 # Temp Files
 test.lua
+
+# LuaRocks
+/luarocks
+/lua
+/lua_modules
+/.luarocks

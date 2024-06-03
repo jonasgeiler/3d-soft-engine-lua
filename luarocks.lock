@@ -1,0 +1,6 @@
+return {
+   dependencies = {
+      fenster = "1.0.1-1",
+      lua = "5.1-1"
+   },
+}
