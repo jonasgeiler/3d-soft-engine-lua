@@ -20,8 +20,7 @@ while dev:present() do
 
 	for mi = 1, #meshes do
 		local mesh = meshes[mi]
-		mesh.rotation.x = mesh.rotation.x + 0.01
-		mesh.rotation.y = mesh.rotation.y + 0.01
+		mesh.rotation.y = mesh.rotation.y + 0.5 * dev.window.delta
 	end
 
 	dev:render(cam, meshes)

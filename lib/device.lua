@@ -9,6 +9,7 @@ local matrix = require('lib.matrix')
 local dkjson = require('dkjson')
 local mesh = require('lib.mesh')
 local face = require('lib.face')
+local fenster = require('fenster')
 
 ---Represents the rendering device (window)
 ---@class device
@@ -16,20 +17,38 @@ local face = require('lib.face')
 ---@field window window*
 ---@field width integer
 ---@field height integer
+---@field aspect number
+---@field half_width number
+---@field half_height number
+---@field depth_buffer number[]
+---@field depth_buffer_size integer
 local device = class()
 
 ---Init the device
 ---@param window window*
 function device:new(window)
 	self.window = window
+
 	self.width = window.width
 	self.height = window.height
+	self.aspect = self.width / self.height
+	self.half_width = self.width / 2
+	self.half_height = self.height / 2
+
+	self.depth_buffer = {}
+	self.depth_buffer_size = self.width * self.height
 end
 
 ---This function is called to clear the window buffer with a specific color
 function device:clear()
 	-- Clearing with black color by default
 	self.window:clear()
+
+	-- Clearing the depth buffer
+	for i = 1, self.depth_buffer_size do
+		-- Max possible value
+		self.depth_buffer[i] = math.huge
+	end
 end
 
 ---Once everything is ready, we can update the window
@@ -40,15 +59,23 @@ end
 ---Called to put a pixel on screen at a specific X,Y coordinates
 ---@param x integer
 ---@param y integer
+---@param z number
 ---@param color integer
-function device:put_pixel(x, y, color)
+function device:put_pixel(x, y, z, color)
+	local index = x + y * self.width
+	if self.depth_buffer[index] < z then
+		return
+	end
+	self.depth_buffer[index] = z
+
 	self.window:set(x, y, color)
 end
 
 ---Project takes some 3D coordinates and transform them in 2D coordinates using the transformation matrix
 ---@param coord vec3
 ---@param trans_mat matrix
----@return vec2
+---@return vec3
+---@nodiscard
 function device:project(coord, trans_mat)
 	--- Transforming the coordinates
 	local point = coord:transform_coordinates(trans_mat)
@@ -56,75 +83,147 @@ function device:project(coord, trans_mat)
 	-- The transformed coordinates will be based on coordinate system
 	-- starting on the center of the screen. But drawing on screen normally starts
 	-- from top left. We then need to transform them again to have x:0, y:0 on top left.
-	local x = math.floor(point.x * self.width + self.width / 2)
-	local y = math.floor(-point.y * self.height + self.height / 2)
+	local x = point.x * self.width + self.half_width
+	local y = -point.y * self.height + self.half_height
 
-	return vec2(x, y)
+	return vec3(x, y, point.z)
 end
 
 ---Calls put_pixel but does the clipping operation before
----@param point vec2
-function device:draw_point(point)
+---@param point vec3
+---@param color integer
+function device:draw_point(point, color)
 	-- Clipping what's visible on screen
 	if point.x >= 0 and point.y >= 0 and point.x < self.width and point.y < self.height then
-		-- Drawing a yellow point
-		self:put_pixel(point.x, point.y, 0xffff00)
+		-- Drawing a point
+		self:put_pixel(math.floor(point.x), math.floor(point.y), point.z, color)
 	end
 end
 
----Draws a line between two points
----@param point0 vec2
----@param point1 vec2
-function device:draw_line(point0, point1)
-	local dist = (point1 - point0):length()
-
-	-- If the distance between the 2 points is less than 2 pixels
-	-- we're exiting
-	if dist < 2 then
-		return
-	end
-
-	-- Find the middle point between first & second point
-	local middle_point = (point0 + point1) / 2
-
-	-- We draw this point on screen
-	self:draw_point(middle_point)
-
-	-- Recursive algorithm launched between first & middle point
-	-- and between middle & second point
-	self:draw_line(point0, middle_point)
-	self:draw_line(middle_point, point1)
+---Clamping values to keep them between 0 and 1
+---@param value number
+---@param min number?
+---@param max number?
+---@return number
+---@nodiscard
+function device:clamp(value, min, max)
+	return math.max(min or 0, math.min(value, max or 1))
 end
 
----Draws a line between two points (with bresenham algorithm)
----@param point0 vec2
----@param point1 vec2
-function device:draw_b_line(point0, point1)
-	local x0 = math.floor(point0.x)
-	local y0 = math.floor(point0.y)
-	local x1 = math.floor(point1.x)
-	local y1 = math.floor(point1.y)
-	local dx = math.abs(x1 - x0)
-	local dy = math.abs(y1 - y0)
-	local sx = (x0 < x1) and 1 or -1
-	local sy = (y0 < y1) and 1 or -1
-	local err = dx - dy
+---Interpolating the value between 2 vertices
+---min is the starting point, max the ending point
+---and gradient the % between the 2 points
+---@param min number
+---@param max number
+---@param gradient number
+function device:interpolate(min, max, gradient)
+	return min + (max - min) * self:clamp(gradient)
+end
 
-	while true do
-		self:draw_point(vec2(x0, y0))
+---Drawing line between 2 points from left to right
+---papb -> pcpd
+---pa, pb, pc, pd must then be sorted before
+---@param y integer
+---@param pa vec3
+---@param pb vec3
+---@param pc vec3
+---@param pd vec3
+---@param color integer
+function device:process_scan_line(y, pa, pb, pc, pd, color)
+	-- Thanks to current Y, we can compute the gradient to compute others values like
+	-- the starting X (sx) and ending X (ex) to draw between
+	-- if pa.Y == pb.Y or pc.Y == pd.Y, gradient is forced to 1
+	local gradient1 = pa.y ~= pb.y and ((y - pa.y) / (pb.y - pa.y)) or 1
+	local gradient2 = pc.y ~= pd.y and ((y - pc.y) / (pd.y - pc.y)) or 1
 
-		if x0 == x1 and y0 == y1 then
-			break
+	local sx = math.floor(self:interpolate(pa.x, pb.x, gradient1))
+	local ex = math.floor(self:interpolate(pc.x, pd.x, gradient2))
+
+	-- Starting Z & Ending Z
+	local z1 = self:interpolate(pa.z, pb.z, gradient1)
+	local z2 = self:interpolate(pc.z, pd.z, gradient2)
+
+	-- Drawing a line from left (sx) to right (ex)
+	for x = sx, ex do
+		local gradient = (x - sx) / (ex - sx)
+		local z = self:interpolate(z1, z2, gradient)
+		self:draw_point(vec3(x, y, z), color)
+	end
+end
+
+---Drawing triangle between 3 points
+---@param p1 vec3
+---@param p2 vec3
+---@param p3 vec3
+---@param color integer
+function device:draw_triangle(p1, p2, p3, color)
+	-- Sorting the points in order to always have this order on screen p1, p2 & p3
+	-- with p1 always up (thus having the Y the lowest possible to be near the top screen)
+	-- then p2 between p1 & p3
+	if p1.y > p2.y then
+		p1, p2 = p2, p1
+	end
+	if p2.y > p3.y then
+		p2, p3 = p3, p2
+	end
+	if p1.y > p2.y then
+		p1, p2 = p2, p1
+	end
+
+	-- inverse slopes
+	local d_p1_p2 ---@type number
+	local d_p1_p3 ---@type number
+
+	-- Computing slopes
+	-- http://en.wikipedia.org/wiki/Slope
+	if p2.y - p1.y > 0 then
+		d_p1_p2 = (p2.x - p1.x) / (p2.y - p1.y)
+	else
+		d_p1_p2 = 0
+	end
+	if p3.y - p1.y > 0 then
+		d_p1_p3 = (p3.x - p1.x) / (p3.y - p1.y)
+	else
+		d_p1_p3 = 0
+	end
+
+	-- First case where triangles are like that:
+	-- P1
+	-- -
+	-- --
+	-- - -
+	-- -  -
+	-- -   - P2
+	-- -  -
+	-- - -
+	-- -
+	-- P3
+	if d_p1_p2 > d_p1_p3 then
+		for y = math.floor(p1.y), math.floor(p3.y) do
+			if y < p2.y then
+				self:process_scan_line(y, p1, p3, p1, p2, color)
+			else
+				self:process_scan_line(y, p1, p3, p2, p3, color)
+			end
 		end
-
-		local e2 = 2 * err;
-		if e2 > -dy then
-			err = err - dy
-			x0 = x0 + sx
-		end
-		if e2 < dx then
-			err = err + dx
-			y0 = y0 + sy
+	else
+		-- First case where triangles are like that:
+		--       P1
+		--        -
+		--       --
+		--      - -
+		--     -  -
+		-- P2 -   -
+		--     -  -
+		--      - -
+		--        -
+		--       P3
+		for y = math.floor(p1.y), math.floor(p3.y) do
+			if y < p2.y then
+				self:process_scan_line(y, p1, p2, p1, p3, color)
+			else
+				self:process_scan_line(y, p2, p3, p1, p3, color)
+			end
 		end
 	end
 end
@@ -140,7 +239,7 @@ function device:render(camera, meshes)
 	)
 	local projection_matrix = matrix.perspective_fov_lh(
 		0.78,
-		self.width / self.height,
+		self.aspect,
 		0.01,
 		1
 	)
@@ -162,7 +261,8 @@ function device:render(camera, meshes)
 
 		local transform_matrix = world_matrix * view_matrix * projection_matrix
 
-		for fi = 1, #curr_mesh.faces do
+		local curr_mesh_faces_count = #curr_mesh.faces
+		for fi = 1, curr_mesh_faces_count do
 			local curr_face = curr_mesh.faces[fi]
 			local vertex_a = curr_mesh.vertices[curr_face.a]
 			local vertex_b = curr_mesh.vertices[curr_face.b]
@@ -172,9 +272,11 @@ function device:render(camera, meshes)
 			local point_b = self:project(vertex_b, transform_matrix)
 			local point_c = self:project(vertex_c, transform_matrix)
 
-			self:draw_b_line(point_a, point_b)
-			self:draw_b_line(point_b, point_c)
-			self:draw_b_line(point_c, point_a)
+			local color = 0.25 + (((fi - 1) % curr_mesh_faces_count) / curr_mesh_faces_count) * 0.75
+			local r = math.floor(255 * color)
+			local g = math.floor(255 * color)
+			local b = math.floor(255 * color)
+			self:draw_triangle(point_a, point_b, point_c, fenster.rgb(r, g, b))
 		end
 	end
 end
@@ -182,6 +284,7 @@ end
 ---Loading the JSON file in an asynchronous manner and calling back with the function passed providing the array of meshes loaded
 ---@param filename string
 ---@return table
+---@nodiscard
 function device:load_json_file(filename)
 	local file = assert(io.open(filename, 'r'))
 	local json_object = dkjson.decode(file:read('*all'))
@@ -196,6 +299,7 @@ end
 ---Create meshes from a JSON object
 ---@param json_object table
 ---@return mesh[]
+---@nodiscard
 function device:create_meshes_from_json(json_object)
 	local meshes = {} ---@type mesh[]
 	for mi = 1, #json_object.meshes do
