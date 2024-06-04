@@ -10,7 +10,7 @@ Some time ago I wanted to learn more about 3D rasterizers, so I read this tutori
 
 ## Screenshot
 
-![Screenshot](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/cadba670-2cd5-4de1-abf2-c4c095487eaf)
+![Screenshot](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/20ba15aa-7e18-4a91-abb3-a485d3b83396)
 
 ## To Do
 
@@ -21,4 +21,6 @@ Some time ago I wanted to learn more about 3D rasterizers, so I read this tutori
 - [X] Part 5 - Handling light with:
   - [X] Flat Shading
   - [X] Gouraud Shading
-- [ ] Part 6 - Applying textures, back-face culling and WebGL
+- [ ] Part 6 - Applying:
+  - [X] Texture mapping
+  - [ ] Back-face culling
