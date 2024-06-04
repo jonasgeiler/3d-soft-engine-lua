@@ -22,6 +22,16 @@ while device:present() do
 
 	device:clear()
 
+	-- Lightweight FPS indicator
+	--[[
+	local fps = math.floor(1 / delta_time)
+	for x = 0, math.min(120, fps) do
+		device.window:set(x, 0, 0x00ff00)
+	end
+	device.window:set(30, 0, 0x0000ff)
+	device.window:set(60, 0, 0xff0000)
+	--]]
+
 	for mi = 1, #meshes do
 		local mesh = meshes[mi]
 		mesh.rotation.y = mesh.rotation.y + 0.5 * delta_time
