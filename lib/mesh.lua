@@ -25,4 +25,18 @@ function mesh:new(vertices, faces, rotation, position, tex)
 	self.tex = tex
 end
 
+---Compute the normals of the faces
+function mesh:compute_faces_normals()
+	for fi = 1, #self.faces do
+		local curr_face = self.faces[fi]
+
+		local vertex_a = self.vertices[curr_face.a]
+		local vertex_b = self.vertices[curr_face.b]
+		local vertex_c = self.vertices[curr_face.c]
+
+		self.faces[fi].normal = (vertex_a.normal + vertex_b.normal + vertex_c.normal) / 3
+		self.faces[fi].normal:normalize()
+	end
+end
+
 return mesh
