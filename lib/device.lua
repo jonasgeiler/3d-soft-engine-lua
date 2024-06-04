@@ -375,25 +375,20 @@ function device:render(camera, meshes)
 			curr_mesh.position.z
 		)
 
-		local world_view = world_matrix * view_matrix
-		local transform_matrix = world_view * projection_matrix
+		local transform_matrix = world_matrix * view_matrix * projection_matrix
 
 		local curr_mesh_faces_count = #curr_mesh.faces
 		for fi = 1, curr_mesh_faces_count do
 			local curr_face = curr_mesh.faces[fi]
+			local vertex_a = curr_mesh.vertices[curr_face.a]
+			local vertex_b = curr_mesh.vertices[curr_face.b]
+			local vertex_c = curr_mesh.vertices[curr_face.c]
 
-			local transformed_normal = curr_face.normal:transform_normal(world_view)
-			if transformed_normal.z < 0 then
-				local vertex_a = curr_mesh.vertices[curr_face.a]
-				local vertex_b = curr_mesh.vertices[curr_face.b]
-				local vertex_c = curr_mesh.vertices[curr_face.c]
+			local point_a = self:project(vertex_a, transform_matrix, world_matrix)
+			local point_b = self:project(vertex_b, transform_matrix, world_matrix)
+			local point_c = self:project(vertex_c, transform_matrix, world_matrix)
 
-				local point_a = self:project(vertex_a, transform_matrix, world_matrix)
-				local point_b = self:project(vertex_b, transform_matrix, world_matrix)
-				local point_c = self:project(vertex_c, transform_matrix, world_matrix)
-
-				self:draw_triangle(point_a, point_b, point_c, curr_mesh.tex)
-			end
+			self:draw_triangle(point_a, point_b, point_c, curr_mesh.tex)
 		end
 	end
 end
@@ -481,8 +476,6 @@ function device:create_meshes_from_json(json_object)
 			local mesh_texture_id = json_object.meshes[mi].materialId ---@type string
 			new_mesh.tex = materials[mesh_texture_id].tex
 		end
-
-		new_mesh:compute_faces_normals()
 
 		meshes[#meshes + 1] = new_mesh
 	end
