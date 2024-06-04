@@ -155,11 +155,11 @@ end
 
 ---Compute the cosine of the angle between the light vector and the normal vector.
 ---Returns a value between 0 and 1
----@param vert Vector3
+---@param vertex Vector3
 ---@param normal Vector3
 ---@param light_position Vector3
-function Device.compute_ndotl(vert, normal, light_position)
-	local light_direction = light_position - vert
+function Device.compute_ndotl(vertex, normal, light_position)
+	local light_direction = light_position - vertex
 
 	normal:normalize()
 	light_direction:normalize()
@@ -373,10 +373,11 @@ end
 ---@param camera Camera
 ---@param meshes Mesh[]
 function Device:render(camera, meshes)
+	-- TODO: Cache theses matrices
 	local view_matrix = Matrix.look_at_lh(
 		camera.position,
 		camera.target,
-		Vector3.new(0, 1, 0)
+		camera.up
 	)
 	local projection_matrix = Matrix.perspective_fov_lh(
 		0.78,
@@ -402,8 +403,7 @@ function Device:render(camera, meshes)
 
 		local transform_matrix = world_matrix * view_matrix * projection_matrix
 
-		local curr_mesh_faces_count = #curr_mesh.faces
-		for fi = 1, curr_mesh_faces_count do
+		for fi = 1, #curr_mesh.faces do
 			local curr_face = curr_mesh.faces[fi]
 			local vertex_a = curr_mesh.vertices[curr_face.a]
 			local vertex_b = curr_mesh.vertices[curr_face.b]

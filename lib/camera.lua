@@ -5,6 +5,7 @@ local Vector3 = require('lib.vector3')
 ---@class Camera
 ---@field position Vector3
 ---@field target Vector3
+---@field up Vector3
 local Camera = {}
 Camera.__index = Camera
 
@@ -18,6 +19,7 @@ function Camera.new(position, target)
 
 	self.position = position or Vector3.new()
 	self.target = target or Vector3.new()
+	self.up = Vector3.new(0, 1, 0)
 
 	return self
 end
