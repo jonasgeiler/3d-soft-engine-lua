@@ -1,20 +1,24 @@
-local class = require('lib.class')
-
 ---@class Face
----@overload fun(a: integer, b: integer, c: integer): Face
 ---@field a integer
 ---@field b integer
 ---@field c integer
-local Face = class()
+local Face = {}
+Face.__index = Face
 
 ---Creates a new face instance
 ---@param a integer
 ---@param b integer
 ---@param c integer
-function Face:new(a, b, c)
+---@return Face
+---@nodiscard
+function Face.new(a, b, c)
+	local self = setmetatable({}, Face)
+
 	self.a = a
 	self.b = b
 	self.c = c
+
+	return self
 end
 
 return Face

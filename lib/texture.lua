@@ -4,19 +4,22 @@ local string = string
 local table = table
 local math = math
 
-local class = require('lib.class')
 local fenster = require('fenster')
 
 ---@class Texture
----@overload fun(filename: string): Texture
 ---@field buffer integer[]
 ---@field width integer
 ---@field height integer
-local Texture = class()
+local Texture = {}
+Texture.__index = Texture
 
 ---Creates a new texture instance and loads the texture from a PPM file
 ---@param filename string
-function Texture:new(filename)
+---@return Texture
+---@nodiscard
+function Texture.new(filename)
+	local self = setmetatable({}, Texture)
+
 	local image = assert(io.open(filename, 'rb'))
 
 	local image_type = image:read(2)
@@ -49,6 +52,10 @@ function Texture:new(filename)
 		local b = string.byte(b_raw)
 		table.insert(self.buffer, fenster.rgb(r, g, b))
 	end
+
+	image:close()
+
+	return self
 end
 
 ---Takes the U & V coordinates exported by Blender

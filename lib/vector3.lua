@@ -1,10 +1,7 @@
 local type = type
 local math = math
 
-local class = require('lib.class')
-
 ---@class Vector3
----@overload fun(x: number?, y: number?, z: number?): Vector3
 ---@field x number
 ---@field y number
 ---@field z number
@@ -17,23 +14,30 @@ local class = require('lib.class')
 ---@operator mul(number): Vector3
 ---@operator div(Vector3): Vector3
 ---@operator div(number): Vector3
-local Vector3 = class()
+local Vector3 = {}
+Vector3.__index = Vector3
 
 ---Creates a new vector3 instance
 ---@param x number?
 ---@param y number?
 ---@param z number?
-function Vector3:new(x, y, z)
+---@return Vector3
+---@nodiscard
+function Vector3.new(x, y, z)
+	local self = setmetatable({}, Vector3)
+
 	self.x = x or 0
 	self.y = y or 0
 	self.z = z or 0
+
+	return self
 end
 
 ---Negate the vector
 ---@return Vector3
 ---@nodiscard
 function Vector3:__unm()
-	return Vector3(-self.x, -self.y, -self.z)
+	return Vector3.new(-self.x, -self.y, -self.z)
 end
 
 ---Set all vector values at once
@@ -58,7 +62,7 @@ end
 ---@return Vector3
 ---@nodiscard
 function Vector3:copy()
-	return Vector3(self.x, self.y, self.z)
+	return Vector3.new(self.x, self.y, self.z)
 end
 
 ---Get the squared length of the vector
@@ -95,13 +99,13 @@ end
 function Vector3.__add(a, b)
 	if type(a) == 'number' then
 		-- if `a` is a number then `b` has to be Vector3
-		return Vector3(a + b.x, a + b.y, a + b.z)
+		return Vector3.new(a + b.x, a + b.y, a + b.z)
 	elseif type(b) == 'number' then
 		-- if `b` is a number then `a` has to be Vector3
-		return Vector3(a.x + b, a.y + b, a.z + b)
+		return Vector3.new(a.x + b, a.y + b, a.z + b)
 	end
 
-	return Vector3(a.x + b.x, a.y + b.y, a.z + b.z)
+	return Vector3.new(a.x + b.x, a.y + b.y, a.z + b.z)
 end
 
 ---Subtract two vectors or a vector and a number
@@ -112,13 +116,13 @@ end
 function Vector3.__sub(a, b)
 	if type(a) == 'number' then
 		-- if `a` is a number then `b` has to be Vector3
-		return Vector3(a - b.x, a - b.y, a - b.z)
+		return Vector3.new(a - b.x, a - b.y, a - b.z)
 	elseif type(b) == 'number' then
 		-- if `b` is a number then `a` has to be Vector3
-		return Vector3(a.x - b, a.y - b, a.z - b)
+		return Vector3.new(a.x - b, a.y - b, a.z - b)
 	end
 
-	return Vector3(a.x - b.x, a.y - b.y, a.z - b.z)
+	return Vector3.new(a.x - b.x, a.y - b.y, a.z - b.z)
 end
 
 ---Multiply two vectors or a vector and a number
@@ -129,13 +133,13 @@ end
 function Vector3.__mul(a, b)
 	if type(a) == 'number' then
 		-- if `a` is a number then `b` has to be Vector3
-		return Vector3(a * b.x, a * b.y, a * b.z)
+		return Vector3.new(a * b.x, a * b.y, a * b.z)
 	elseif type(b) == 'number' then
 		-- if `b` is a number then `a` has to be Vector3
-		return Vector3(a.x * b, a.y * b, a.z * b)
+		return Vector3.new(a.x * b, a.y * b, a.z * b)
 	end
 
-	return Vector3(a.x * b.x, a.y * b.y, a.z * b.z)
+	return Vector3.new(a.x * b.x, a.y * b.y, a.z * b.z)
 end
 
 ---Divide two vectors or a vector and a number
@@ -146,13 +150,13 @@ end
 function Vector3.__div(a, b)
 	if type(a) == 'number' then
 		-- if `a` is a number then `b` has to be Vector3
-		return Vector3(a / b.x, a / b.y, a / b.z)
+		return Vector3.new(a / b.x, a / b.y, a / b.z)
 	elseif type(b) == 'number' then
 		-- if `b` is a number then `a` has to be Vector3
-		return Vector3(a.x / b, a.y / b, a.z / b)
+		return Vector3.new(a.x / b, a.y / b, a.z / b)
 	end
 
-	return Vector3(a.x / b.x, a.y / b.y, a.z / b.z)
+	return Vector3.new(a.x / b.x, a.y / b.y, a.z / b.z)
 end
 
 ---Check if two vectors are equal
@@ -179,7 +183,7 @@ end
 ---@return Vector3
 ---@nodiscard
 function Vector3.cross(a, b)
-	return Vector3(
+	return Vector3.new(
 		a.y * b.z - a.z * b.y,
 		a.z * b.x - a.x * b.z,
 		a.x * b.y - a.y * b.x
@@ -198,7 +202,7 @@ function Vector3.transform_coordinates(vector, transformation)
 		(vector.z * transformation.m[12]) +
 		transformation.m[16]
 
-	return Vector3(
+	return Vector3.new(
 		(
 			(vector.x * transformation.m[1]) +
 			(vector.y * transformation.m[5]) +
@@ -226,7 +230,7 @@ end
 ---@return Vector3
 ---@nodiscard
 function Vector3.transform_normal(vector, transformation)
-	return Vector3(
+	return Vector3.new(
 		(vector.x * transformation.m[1]) +
 		(vector.y * transformation.m[5]) +
 		(vector.z * transformation.m[9]),

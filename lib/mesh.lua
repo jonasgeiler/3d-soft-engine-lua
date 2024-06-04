@@ -1,15 +1,13 @@
-local class = require('lib.class')
-
 local Vector3 = require('lib.vector3')
 
 ---@class Mesh
----@overload fun(vertices: Vertex[]?, faces: Face[]?, rotation: Vector3?, position: Vector3?, texture: Texture?): Mesh
 ---@field position Vector3
 ---@field rotation Vector3
 ---@field vertices Vertex[]
 ---@field faces Face[]
 ---@field texture Texture?
-local Mesh = class()
+local Mesh = {}
+Mesh.__index = Mesh
 
 ---Creates a new mesh instance
 ---@param vertices Vertex[]?
@@ -17,12 +15,18 @@ local Mesh = class()
 ---@param rotation Vector3?
 ---@param position Vector3?
 ---@param texture Texture?
-function Mesh:new(vertices, faces, rotation, position, texture)
+---@return Mesh
+---@nodiscard
+function Mesh.new(vertices, faces, rotation, position, texture)
+	local self = setmetatable({}, Mesh)
+
 	self.vertices = vertices or {}
 	self.faces = faces or {}
-	self.rotation = rotation or Vector3()
-	self.position = position or Vector3()
+	self.rotation = rotation or Vector3.new()
+	self.position = position or Vector3.new()
 	self.texture = texture
+
+	return self
 end
 
 return Mesh

@@ -1,12 +1,10 @@
 local math = math
 
-local class = require('lib.class')
-
 ---@class Matrix
----@overload fun(m11: number?, m12: number?, m13: number?, m14: number?, m21: number?, m22: number?, m23: number?, m24: number?, m31: number?, m32: number?, m33: number?, m34: number?, m41: number?, m42: number?, m43: number?, m44: number?): Matrix
 ---@field m number[]
 ---@operator mul(Matrix): Matrix
-local Matrix = class()
+local Matrix = {}
+Matrix.__index = Matrix
 
 ---Creates a new matrix instance
 ---@param m11 number?
@@ -25,18 +23,24 @@ local Matrix = class()
 ---@param m42 number?
 ---@param m43 number?
 ---@param m44 number?
-function Matrix:new(
+---@return Matrix
+---@nodiscard
+function Matrix.new(
 	m11, m12, m13, m14,
 	m21, m22, m23, m24,
 	m31, m32, m33, m34,
 	m41, m42, m43, m44
 )
+	local self = setmetatable({}, Matrix)
+
 	self.m = {
 		m11 or 0, m12 or 0, m13 or 0, m14 or 0,
 		m21 or 0, m22 or 0, m23 or 0, m24 or 0,
 		m31 or 0, m32 or 0, m33 or 0, m34 or 0,
 		m41 or 0, m42 or 0, m43 or 0, m44 or 0,
 	}
+
+	return self
 end
 
 ---Multiply two matrices
@@ -45,7 +49,7 @@ end
 ---@return Matrix
 ---@nodiscard
 function Matrix.__mul(a, b)
-	return Matrix(
+	return Matrix.new(
 		a.m[1] * b.m[1] + a.m[2] * b.m[5] + a.m[3] * b.m[9] + a.m[4] * b.m[13],
 		a.m[1] * b.m[2] + a.m[2] * b.m[6] + a.m[3] * b.m[10] + a.m[4] * b.m[14],
 		a.m[1] * b.m[3] + a.m[2] * b.m[7] + a.m[3] * b.m[11] + a.m[4] * b.m[15],
@@ -80,7 +84,7 @@ end
 function Matrix.rotation_x(angle)
 	local s = math.sin(angle)
 	local c = math.cos(angle)
-	return Matrix(
+	return Matrix.new(
 		1, 0, 0, 0,
 		0, c, s, 0,
 		0, -s, c, 0,
@@ -95,7 +99,7 @@ end
 function Matrix.rotation_y(angle)
 	local s = math.sin(angle)
 	local c = math.cos(angle)
-	return Matrix(
+	return Matrix.new(
 		c, 0, -s, 0,
 		0, 1, 0, 0,
 		s, 0, c, 0,
@@ -110,7 +114,7 @@ end
 function Matrix.rotation_z(angle)
 	local s = math.sin(angle)
 	local c = math.cos(angle)
-	return Matrix(
+	return Matrix.new(
 		c, s, 0, 0,
 		-s, c, 0, 0,
 		0, 0, 1, 0,
@@ -137,7 +141,7 @@ end
 ---@return Matrix
 ---@nodiscard
 function Matrix.translation(x, y, z)
-	return Matrix(
+	return Matrix.new(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
@@ -159,7 +163,7 @@ function Matrix.look_at_lh(eye, target, up)
 	local y_axis = z_axis:cross(x_axis)
 	y_axis:normalize()
 
-	return Matrix(
+	return Matrix.new(
 		x_axis.x, y_axis.x, z_axis.x, 0,
 		x_axis.y, y_axis.y, z_axis.y, 0,
 		x_axis.z, y_axis.z, z_axis.z, 0,
@@ -176,7 +180,7 @@ end
 ---@nodiscard
 function Matrix.perspective_fov_lh(fov, aspect, z_near, z_far)
 	local tan = 1 / math.tan(fov / 2)
-	return Matrix(
+	return Matrix.new(
 		tan / aspect, 0, 0, 0,
 		0, tan, 0, 0,
 		0, 0, -z_far / (z_near - z_far), 1,

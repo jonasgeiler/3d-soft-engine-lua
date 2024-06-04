@@ -1,7 +1,4 @@
-local class = require('lib.class')
-
 ---@class ScanLineData
----@overload fun(curr_y: integer?, ndotla: number?, ndotlb: number?, ndotlc: number?, ndotld: number?, ua: number?, ub: number?, uc: number?, ud: number?, va: number?, vb: number?, vc: number?, vd: number?): ScanLineData
 ---@field curr_y integer
 ---@field ndotla number
 ---@field ndotlb number
@@ -15,7 +12,8 @@ local class = require('lib.class')
 ---@field vb number
 ---@field vc number
 ---@field vd number
-local ScanLineData = class()
+local ScanLineData = {}
+ScanLineData.__index = ScanLineData
 
 ---Creates a new scan line data instance
 ---@param curr_y integer?
@@ -31,12 +29,16 @@ local ScanLineData = class()
 ---@param vb number?
 ---@param vc number?
 ---@param vd number?
-function ScanLineData:new(
+---@return ScanLineData
+---@nodiscard
+function ScanLineData.new(
 	curr_y,
 	ndotla, ndotlb, ndotlc, ndotld,
 	ua, ub, uc, ud,
 	va, vb, vc, vd
 )
+	local self = setmetatable({}, ScanLineData)
+
 	self.curr_y = curr_y or 0
 	self.ndotla = ndotla or 0
 	self.ndotlb = ndotlb or 0
@@ -50,6 +52,8 @@ function ScanLineData:new(
 	self.vb = vb or 0
 	self.vc = vc or 0
 	self.vd = vd or 0
+
+	return self
 end
 
 return ScanLineData

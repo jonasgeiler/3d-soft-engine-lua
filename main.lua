@@ -6,8 +6,8 @@ local Vector3 = require('lib.vector3')
 
 local window = fenster.open(640, 480, '3D Soft Engine')
 
-local camera = Camera(Vector3(0, 0, 10), Vector3(0, 0, 0))
-local device = Device(window)
+local camera = Camera.new(Vector3.new(0, 0, 10), Vector3.new(0, 0, 0))
+local device = Device.new(window)
 
 local meshes = device:load_json_file('./assets/monkey.babylon')
 

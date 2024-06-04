@@ -3,7 +3,6 @@ local io = io
 local type = type
 local math = math
 
-local class = require('lib.class')
 local fenster = require('fenster')
 local json = require('dkjson')
 
@@ -18,7 +17,6 @@ local Vector2 = require('lib.vector2')
 local Texture = require('lib.texture')
 
 ---@class Device
----@overload fun(window: window*): Device
 ---@field window window*
 ---@field width integer
 ---@field height integer
@@ -27,11 +25,16 @@ local Texture = require('lib.texture')
 ---@field half_height number
 ---@field depth_buffer number[]
 ---@field depth_buffer_size integer
-local Device = class()
+local Device = {}
+Device.__index = Device
 
 ---Creates a new device instance
 ---@param window window*
-function Device:new(window)
+---@return Device
+---@nodiscard
+function Device.new(window)
+	local self = setmetatable({}, Device)
+
 	self.window = window
 
 	self.width = window.width
@@ -42,6 +45,8 @@ function Device:new(window)
 
 	self.depth_buffer = {}
 	self.depth_buffer_size = self.width * self.height
+
+	return self
 end
 
 ---This function is called to clear the window buffer with a specific color
@@ -100,8 +105,8 @@ function Device:project(vertex, trans_mat, world)
 	local x = point_2d.x * self.width + self.half_width
 	local y = -point_2d.y * self.height + self.half_height
 
-	return Vertex(
-		Vector3(x, y, point_2d.z),
+	return Vertex.new(
+		Vector3.new(x, y, point_2d.z),
 		normal_3d_world,
 		point_3d_world,
 		vertex.texture_coordinates
@@ -197,7 +202,7 @@ function Device:process_scan_line(data, va, vb, vc, vd, texture)
 		local r = math.floor(texture_color_r * ndotl)
 		local g = math.floor(texture_color_g * ndotl)
 		local b = math.floor(texture_color_b * ndotl)
-		self:draw_point(Vector3(x, data.curr_y, z), fenster.rgb(r, g, b))
+		self:draw_point(Vector3.new(x, data.curr_y, z), fenster.rgb(r, g, b))
 	end
 end
 
@@ -242,7 +247,7 @@ function Device:draw_triangle(v1, v2, v3, texture)
 	local p3 = v3.coordinates
 
 	-- Light position
-	local light_pos = Vector3(0, 10, 10)
+	local light_pos = Vector3.new(0, 10, 10)
 
 	-- Computing the cos of the angle between the light vector and the normal vector
 	-- it will return a value between 0 and 1 that will be used as the intensity of the color
@@ -250,7 +255,7 @@ function Device:draw_triangle(v1, v2, v3, texture)
 	local nl2 = self:compute_ndotl(v2.world_coordinates, v2.normal, light_pos)
 	local nl3 = self:compute_ndotl(v3.world_coordinates, v3.normal, light_pos)
 
-	local data = ScanLineData()
+	local data = ScanLineData.new()
 
 	-- Computing lines' directions
 	local d_p1_p2 ---@type number
@@ -358,7 +363,7 @@ function Device:render(camera, meshes)
 	local view_matrix = Matrix.look_at_lh(
 		camera.position,
 		camera.target,
-		Vector3(0, 1, 0)
+		Vector3.new(0, 1, 0)
 	)
 	local projection_matrix = Matrix.perspective_fov_lh(
 		0.78,
@@ -411,8 +416,8 @@ function Device:create_meshes_from_json(json_object)
 		local diffuse_texture = json_object.materials[mi].diffuseTexture ---@type {name: string}
 
 		if diffuse_texture then
-			local texture = Texture('./assets/' .. diffuse_texture.name)
-			materials[id] = Material(texture)
+			local texture = Texture.new('./assets/' .. diffuse_texture.name)
+			materials[id] = Material.new(texture)
 		end
 	end
 
@@ -439,7 +444,7 @@ function Device:create_meshes_from_json(json_object)
 		-- Number of faces is logically the size of the array divided by 3 (A, B, C)
 		local faces_count = #indices / 3
 
-		local new_mesh = Mesh()
+		local new_mesh = Mesh.new()
 		-- Filling the vertices array of our mesh first
 		for vi = 1, vertices_count do
 			local x = vertices[(vi - 1) * vertices_step + 1]
@@ -451,21 +456,21 @@ function Device:create_meshes_from_json(json_object)
 			local ny = vertices[(vi - 1) * vertices_step + 5]
 			local nz = vertices[(vi - 1) * vertices_step + 6]
 
-			new_mesh.vertices[vi] = Vertex(
-				Vector3(x, y, z),
-				Vector3(nx, ny, nz)
+			new_mesh.vertices[vi] = Vertex.new(
+				Vector3.new(x, y, z),
+				Vector3.new(nx, ny, nz)
 			)
 
 			if uv_count > 0 then
 				-- Loading the texture coordinates
 				local u = vertices[(vi - 1) * vertices_step + 7]
 				local v = vertices[(vi - 1) * vertices_step + 8]
-				new_mesh.vertices[vi].texture_coordinates = Vector2(u, v)
+				new_mesh.vertices[vi].texture_coordinates = Vector2.new(u, v)
 			end
 		end
 		-- Then filling the faces array
 		for fi = 1, faces_count do
-			new_mesh.faces[fi] = Face(
+			new_mesh.faces[fi] = Face.new(
 				indices[(fi - 1) * 3 + 1] + 1,
 				indices[(fi - 1) * 3 + 2] + 1,
 				indices[(fi - 1) * 3 + 3] + 1
@@ -473,7 +478,7 @@ function Device:create_meshes_from_json(json_object)
 		end
 
 		-- Getting the position of the mesh
-		new_mesh.position = Vector3(
+		new_mesh.position = Vector3.new(
 			json_object.meshes[mi].position[1],
 			json_object.meshes[mi].position[2],
 			json_object.meshes[mi].position[3]
