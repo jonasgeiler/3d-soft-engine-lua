@@ -72,8 +72,9 @@ function Device:put_pixel(x, y, z, color)
 	-- we need to know the equivalent cell index in 1-D based
 	-- on the 2D coordinates of the screen
 	local index = x + y * self.width
+
 	if self.depth_buffer[index] < z then
-		return
+		return -- Discard
 	end
 	self.depth_buffer[index] = z
 
@@ -81,13 +82,15 @@ function Device:put_pixel(x, y, z, color)
 end
 
 ---Calls put_pixel but does the clipping operation before
----@param point Vector3
+---@param x integer
+---@param y integer
+---@param z number
 ---@param color integer
-function Device:draw_point(point, color)
+function Device:draw_point(x, y, z, color)
 	-- Clipping what's visible on screen
-	if point.x >= 0 and point.y >= 0 and point.x < self.width and point.y < self.height then
+	if x >= 0 and y >= 0 and x < self.width and y < self.height then
 		-- Drawing a point
-		self:put_pixel(math.floor(point.x), math.floor(point.y), point.z, color)
+		self:put_pixel(x, y, z, color)
 	end
 end
 
@@ -226,7 +229,7 @@ function Device:process_scan_line(data, va, vb, vc, vd, texture)
 		local r = math.floor(texture_color_r * ndotl)
 		local g = math.floor(texture_color_g * ndotl)
 		local b = math.floor(texture_color_b * ndotl)
-		self:draw_point(Vector3.new(x, data.curr_y, z), fenster.rgb(r, g, b))
+		self:draw_point(x, data.curr_y, z, fenster.rgb(r, g, b))
 	end
 end
 
