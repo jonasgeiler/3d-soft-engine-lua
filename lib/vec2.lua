@@ -109,5 +109,4 @@ function vec2.__div(a, b)
 	return vec2(a.x / b.x, a.y / b.y)
 end
 
-
 return vec2

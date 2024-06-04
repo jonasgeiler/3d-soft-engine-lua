@@ -3,7 +3,6 @@ local io = io
 local type = type
 local math = math
 local class = require('lib.class')
-local vec2 = require('lib.vec2')
 local vec3 = require('lib.vec3')
 local matrix = require('lib.matrix')
 local dkjson = require('dkjson')
@@ -144,7 +143,7 @@ function device:process_scan_line(y, pa, pb, pc, pd, color)
 	local z2 = self:interpolate(pc.z, pd.z, gradient2)
 
 	-- Drawing a line from left (sx) to right (ex)
-	for x = sx, ex do
+	for x = sx, ex - 1 do
 		local gradient = (x - sx) / (ex - sx)
 		local z = self:interpolate(z1, z2, gradient)
 		self:draw_point(vec3(x, y, z), color)
@@ -281,21 +280,6 @@ function device:render(camera, meshes)
 	end
 end
 
----Loading the JSON file in an asynchronous manner and calling back with the function passed providing the array of meshes loaded
----@param filename string
----@return table
----@nodiscard
-function device:load_json_file(filename)
-	local file = assert(io.open(filename, 'r'))
-	local json_object = dkjson.decode(file:read('*all'))
-	file:close()
-
-	-- Validate the JSON object
-	assert(type(json_object) == 'table', 'Error loading JSON file: ' .. filename)
-
-	return json_object
-end
-
 ---Create meshes from a JSON object
 ---@param json_object table
 ---@return mesh[]
@@ -353,6 +337,21 @@ function device:create_meshes_from_json(json_object)
 	end
 
 	return meshes
+end
+
+---Loading the JSON file and returning the array of meshes loaded
+---@param filename string
+---@return mesh[]
+---@nodiscard
+function device:load_json_file(filename)
+	local file = assert(io.open(filename, 'r'))
+	local json_object = dkjson.decode(file:read('*all'))
+	file:close()
+
+	-- Validate the JSON object
+	assert(type(json_object) == 'table', 'Error loading JSON file: ' .. filename)
+
+	return self:create_meshes_from_json(json_object)
 end
 
 return device

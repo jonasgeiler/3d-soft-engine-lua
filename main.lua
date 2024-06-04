@@ -11,9 +11,7 @@ local dev = device(window)
 cam.position = vec3(0, 0, 10)
 cam.target = vec3(0, 0, 0)
 
-local meshes = dev:create_meshes_from_json(
-	dev:load_json_file('./assets/monkey/model.babylon')
-)
+local meshes = dev:load_json_file('./assets/monkey/model.babylon')
 
 while dev:present() do
 	dev:clear()
