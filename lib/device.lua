@@ -158,11 +158,14 @@ function device:process_scan_line(data, va, vb, vc, vd, color)
 	local z1 = self:interpolate(pa.z, pb.z, gradient1)
 	local z2 = self:interpolate(pc.z, pd.z, gradient2)
 
+	local snl = self:interpolate(data.ndotla, data.ndotlb, gradient1)
+	local enl = self:interpolate(data.ndotlc, data.ndotld, gradient2)
+
 	-- Drawing a line from left (sx) to right (ex)
 	for x = sx, ex - 1 do
 		local gradient = (x - sx) / (ex - sx)
 		local z = self:interpolate(z1, z2, gradient)
-		local ndotl = data.ndotla
+		local ndotl = self:interpolate(snl, enl, gradient)
 
 		-- Changing the color value using the cosine of the angle
 		-- between the light vector and the normal vector
@@ -210,19 +213,16 @@ function device:draw_triangle(v1, v2, v3, color)
 	local p2 = v2.coordinates
 	local p3 = v3.coordinates
 
-	-- Normal face's vector is the average normal between each vertex's normal
-	-- computing also the center point of the face
-	local vn_face = (v1.normal + v2.normal + v3.normal) / 3
-	local center_point = (v1.world_coordinates + v2.world_coordinates + v3.world_coordinates) / 3
-
 	-- Light position
 	local light_pos = vec3(0, 10, 10)
 
 	-- Computing the cos of the angle between the light vector and the normal vector
 	-- it will return a value between 0 and 1 that will be used as the intensity of the color
-	local ndotl = self:compute_ndotl(center_point, vn_face, light_pos)
+	local nl1 = self:compute_ndotl(v1.world_coordinates, v1.normal, light_pos)
+	local nl2 = self:compute_ndotl(v2.world_coordinates, v2.normal, light_pos)
+	local nl3 = self:compute_ndotl(v3.world_coordinates, v3.normal, light_pos)
 
-	local data = scan_line_data(nil, ndotl)
+	local data = scan_line_data()
 
 	-- Computing lines' directions
 	local d_p1_p2 ---@type number
@@ -241,45 +241,40 @@ function device:draw_triangle(v1, v2, v3, color)
 		d_p1_p3 = 0
 	end
 
-	-- First case where triangles are like that:
-	-- P1
-	-- -
-	-- --
-	-- - -
-	-- -  -
-	-- -   - P2
-	-- -  -
-	-- - -
-	-- -
-	-- P3
+
 	if d_p1_p2 > d_p1_p3 then
 		for y = math.floor(p1.y), math.floor(p3.y) do
 			data.curr_y = y
 
 			if y < p2.y then
+				data.ndotla = nl1
+				data.ndotlb = nl3
+				data.ndotlc = nl1
+				data.ndotld = nl2
 				self:process_scan_line(data, v1, v3, v1, v2, color)
 			else
+				data.ndotla = nl1
+				data.ndotlb = nl3
+				data.ndotlc = nl2
+				data.ndotld = nl3
 				self:process_scan_line(data, v1, v3, v2, v3, color)
 			end
 		end
 	else
-		-- First case where triangles are like that:
-		--       P1
-		--        -
-		--       --
-		--      - -
-		--     -  -
-		-- P2 -   -
-		--     -  -
-		--      - -
-		--        -
-		--       P3
 		for y = math.floor(p1.y), math.floor(p3.y) do
 			data.curr_y = y
 
 			if y < p2.y then
+				data.ndotla = nl1
+				data.ndotlb = nl2
+				data.ndotlc = nl1
+				data.ndotld = nl3
 				self:process_scan_line(data, v1, v2, v1, v3, color)
 			else
+				data.ndotla = nl2
+				data.ndotlb = nl3
+				data.ndotlc = nl1
+				data.ndotld = nl3
 				self:process_scan_line(data, v2, v3, v1, v3, color)
 			end
 		end
