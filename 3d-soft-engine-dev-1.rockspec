@@ -1,8 +1,8 @@
 rockspec_format = '3.0'
-package = '3d-rasterizer'
+package = '3d-soft-engine'
 version = 'dev-1'
 source = {
-	url = 'git+https://github.com/jonasgeiler/3d-rasterizer-lua',
+	url = 'git+https://github.com/jonasgeiler/3d-soft-engine-lua',
 }
 description = {
 	license = 'MIT',
