@@ -10,7 +10,7 @@ Some time ago I wanted to learn more about 3D rasterizers, so I read this tutori
 
 ## Screenshot
 
-![Screenshot](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/8b250fd3-3acc-42c3-a49c-a92d67c76ad4)
+![Screenshot](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/cadba670-2cd5-4de1-abf2-c4c095487eaf)
 
 ## To Do
 
@@ -18,7 +18,7 @@ Some time ago I wanted to learn more about 3D rasterizers, so I read this tutori
 - [X] Part 2 - Drawing lines and triangles to obtain a wireframe rendering
 - [X] Part 3 - Loading meshes exported from Blender in a JSON format
 - [X] Part 4 - Filling the triangle with rasterization and using a Z-Buffer
-- [ ] Part 5 - Handling light with:
+- [X] Part 5 - Handling light with:
   - [X] Flat Shading
-  - [ ] Gouraud Shading
+  - [X] Gouraud Shading
 - [ ] Part 6 - Applying textures, back-face culling and WebGL
