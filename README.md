@@ -21,6 +21,6 @@ Some time ago I wanted to learn more about 3D rasterizers, so I read this tutori
 - [X] Part 5 - Handling light with:
   - [X] Flat Shading
   - [X] Gouraud Shading
-- [ ] Part 6 - Applying:
+- [X] Part 6 - Applying:
   - [X] Texture mapping
-  - [ ] Back-face culling
+  - [X] Back-face culling
