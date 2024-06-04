@@ -21,7 +21,7 @@ Vector2.__index = Vector2
 ---@param y number?
 ---@return Vector2
 ---@nodiscard
-function Vector2.new(x, y, z)
+function Vector2.new(x, y)
 	local self = setmetatable({}, Vector2)
 
 	self.x = x or 0

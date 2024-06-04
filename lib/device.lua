@@ -131,7 +131,7 @@ end
 ---@param max number?
 ---@return number
 ---@nodiscard
-function Device:clamp(value, min, max)
+function Device.clamp(value, min, max)
 	return math.max(min or 0, math.min(value, max or 1))
 end
 
@@ -143,8 +143,8 @@ end
 ---@param gradient number
 ---@return number
 ---@nodiscard
-function Device:interpolate(min, max, gradient)
-	return min + (max - min) * self:clamp(gradient)
+function Device.interpolate(min, max, gradient)
+	return min + (max - min) * Device.clamp(gradient)
 end
 
 ---Drawing line between 2 points from left to right
@@ -165,38 +165,44 @@ function Device:process_scan_line(data, va, vb, vc, vd, texture)
 	-- Thanks to current Y, we can compute the gradient to compute others values like
 	-- the starting X (sx) and ending X (ex) to draw between
 	-- if pa.Y == pb.Y or pc.Y == pd.Y, gradient is forced to 1
-	local gradient1 = pa.y ~= pb.y and ((data.curr_y - pa.y) / (pb.y - pa.y)) or 1
-	local gradient2 = pc.y ~= pd.y and ((data.curr_y - pc.y) / (pd.y - pc.y)) or 1
+	local gradient1 = pa.y ~= pb.y
+		and ((data.curr_y - pa.y) / (pb.y - pa.y))
+		or 1
+	local gradient2 = pc.y ~= pd.y
+		and ((data.curr_y - pc.y) / (pd.y - pc.y))
+		or 1
 
-	local sx = math.floor(self:interpolate(pa.x, pb.x, gradient1))
-	local ex = math.floor(self:interpolate(pc.x, pd.x, gradient2))
+	local sx = math.floor(Device.interpolate(pa.x, pb.x, gradient1))
+	local ex = math.floor(Device.interpolate(pc.x, pd.x, gradient2))
 
 	-- Starting Z & Ending Z
-	local z1 = self:interpolate(pa.z, pb.z, gradient1)
-	local z2 = self:interpolate(pc.z, pd.z, gradient2)
+	local z1 = Device.interpolate(pa.z, pb.z, gradient1)
+	local z2 = Device.interpolate(pc.z, pd.z, gradient2)
 
 	-- Interpolating normals on Y
-	local snl = self:interpolate(data.ndotla, data.ndotlb, gradient1)
-	local enl = self:interpolate(data.ndotlc, data.ndotld, gradient2)
+	local snl = Device.interpolate(data.ndotla, data.ndotlb, gradient1)
+	local enl = Device.interpolate(data.ndotlc, data.ndotld, gradient2)
 
 	-- Interpolating texture coordinates on Y
-	local su = self:interpolate(data.ua, data.ub, gradient1)
-	local eu = self:interpolate(data.uc, data.ud, gradient2)
-	local sv = self:interpolate(data.va, data.vb, gradient1)
-	local ev = self:interpolate(data.vc, data.vd, gradient2)
+	local su = Device.interpolate(data.ua, data.ub, gradient1)
+	local eu = Device.interpolate(data.uc, data.ud, gradient2)
+	local sv = Device.interpolate(data.va, data.vb, gradient1)
+	local ev = Device.interpolate(data.vc, data.vd, gradient2)
 
 	-- Drawing a line from left (sx) to right (ex)
 	for x = sx, ex - 1 do
 		local gradient = (x - sx) / (ex - sx)
 
 		-- Interpolating Z, normal and texture coordinates on X
-		local z = self:interpolate(z1, z2, gradient)
-		local ndotl = self:interpolate(snl, enl, gradient)
-		local u = self:interpolate(su, eu, gradient)
-		local v = self:interpolate(sv, ev, gradient)
+		local z = Device.interpolate(z1, z2, gradient)
+		local ndotl = Device.interpolate(snl, enl, gradient)
+		local u = Device.interpolate(su, eu, gradient)
+		local v = Device.interpolate(sv, ev, gradient)
 
 		local texture_color = texture and texture:map(u, v) or 0xffffff
-		local texture_color_r, texture_color_g, texture_color_b = fenster.rgb(texture_color)
+		local texture_color_r, texture_color_g, texture_color_b = fenster.rgb(
+			texture_color
+		)
 
 		-- Changing the native color value using the cosine of the angle
 		-- between the light vector and the normal vector and the texture color
@@ -212,7 +218,7 @@ end
 ---@param vert Vector3
 ---@param normal Vector3
 ---@param light_position Vector3
-function Device:compute_ndotl(vert, normal, light_position)
+function Device.compute_ndotl(vert, normal, light_position)
 	local light_direction = light_position - vert
 
 	normal:normalize()
@@ -252,9 +258,9 @@ function Device:draw_triangle(v1, v2, v3, texture)
 
 	-- Computing the cos of the angle between the light vector and the normal vector
 	-- it will return a value between 0 and 1 that will be used as the intensity of the color
-	local nl1 = self:compute_ndotl(v1.world_coordinates, v1.normal, light_pos)
-	local nl2 = self:compute_ndotl(v2.world_coordinates, v2.normal, light_pos)
-	local nl3 = self:compute_ndotl(v3.world_coordinates, v3.normal, light_pos)
+	local nl1 = Device.compute_ndotl(v1.world_coordinates, v1.normal, light_pos)
+	local nl2 = Device.compute_ndotl(v2.world_coordinates, v2.normal, light_pos)
+	local nl3 = Device.compute_ndotl(v3.world_coordinates, v3.normal, light_pos)
 
 	local data = ScanLineData.new()
 
@@ -410,11 +416,14 @@ end
 ---@param json_object table
 ---@return Mesh[]
 ---@nodiscard
-function Device:create_meshes_from_json(json_object)
+function Device.create_meshes_from_json(json_object)
 	local materials = {} ---@type table<string, Material>
 	for mi = 1, #json_object.materials do
-		local id = json_object.materials[mi].id ---@type string
-		local diffuse_texture = json_object.materials[mi].diffuseTexture ---@type {name: string}
+		---@type {id:string,diffuseTexture:{name: string}}
+		local curr_material = json_object.materials[mi]
+
+		local id = curr_material.id
+		local diffuse_texture = curr_material.diffuseTexture
 
 		if diffuse_texture then
 			local texture = Texture.new('./assets/' .. diffuse_texture.name)
@@ -424,9 +433,12 @@ function Device:create_meshes_from_json(json_object)
 
 	local meshes = {} ---@type Mesh[]
 	for mi = 1, #json_object.meshes do
-		local vertices = json_object.meshes[mi].vertices ---@type number[]
-		local indices = json_object.meshes[mi].indices ---@type integer[]
-		local uv_count = json_object.meshes[mi].uvCount ---@type number
+		---@type {vertices:number[],indices:integer[],uvCount:integer,position:number[],materialId:string}
+		local curr_mesh = json_object.meshes[mi]
+
+		local vertices = curr_mesh.vertices
+		local indices = curr_mesh.indices
+		local uv_count = curr_mesh.uvCount
 
 		-- Depending of the number of texture's coordinates per vertex
 		-- we're jumping in the vertices array  by 6, 8 & 10 windows frame
@@ -480,14 +492,13 @@ function Device:create_meshes_from_json(json_object)
 
 		-- Getting the position of the mesh
 		new_mesh.position = Vector3.new(
-			json_object.meshes[mi].position[1],
-			json_object.meshes[mi].position[2],
-			json_object.meshes[mi].position[3]
+			curr_mesh.position[1],
+			curr_mesh.position[2],
+			curr_mesh.position[3]
 		)
 
 		if uv_count > 0 then
-			local mesh_texture_id = json_object.meshes[mi].materialId ---@type string
-			new_mesh.texture = materials[mesh_texture_id].texture
+			new_mesh.texture = materials[curr_mesh.materialId].texture
 		end
 
 		meshes[#meshes + 1] = new_mesh
@@ -500,15 +511,14 @@ end
 ---@param filename string
 ---@return Mesh[]
 ---@nodiscard
-function Device:load_json_file(filename)
+function Device.load_json_file(filename)
 	local file = assert(io.open(filename, 'r'))
-	local json_object = json.decode(file:read('*all'))
+	local json_object, _, err = json.decode(file:read('*all'))
+	assert(not err, err)
 	file:close()
+	assert(type(json_object) == 'table', 'json file does not contain an object')
 
-	-- Validate the JSON object
-	assert(type(json_object) == 'table', 'Error loading JSON file: ' .. filename)
-
-	return self:create_meshes_from_json(json_object)
+	return Device.create_meshes_from_json(json_object)
 end
 
 return Device

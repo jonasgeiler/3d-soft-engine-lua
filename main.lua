@@ -9,7 +9,7 @@ local window = fenster.open(640, 480, '3D Soft Engine')
 local camera = Camera.new(Vector3.new(0, 0, 10), Vector3.new(0, 0, 0))
 local device = Device.new(window)
 
-local meshes = device:load_json_file('./assets/monkey.babylon')
+local meshes = Device.load_json_file('./assets/monkey.babylon')
 
 while device:present() do
 	device:clear()
