@@ -62,18 +62,15 @@ function Device:clear()
 	end
 end
 
----Once everything is ready, we can update the window
----@return boolean
-function Device:present()
-	return self.window:loop() and not self.window.keys[27]
-end
-
 ---Called to put a pixel on screen at a specific X,Y coordinates
 ---@param x integer
 ---@param y integer
 ---@param z number
 ---@param color integer
 function Device:put_pixel(x, y, z, color)
+	-- As we have a 1-D Array for our back buffer
+	-- we need to know the equivalent cell index in 1-D based
+	-- on the 2D coordinates of the screen
 	local index = x + y * self.width
 	if self.depth_buffer[index] < z then
 		return
@@ -81,6 +78,45 @@ function Device:put_pixel(x, y, z, color)
 	self.depth_buffer[index] = z
 
 	self.window:set(x, y, color)
+end
+
+---Calls put_pixel but does the clipping operation before
+---@param point Vector3
+---@param color integer
+function Device:draw_point(point, color)
+	-- Clipping what's visible on screen
+	if point.x >= 0 and point.y >= 0 and point.x < self.width and point.y < self.height then
+		-- Drawing a point
+		self:put_pixel(math.floor(point.x), math.floor(point.y), point.z, color)
+	end
+end
+
+---Once everything is ready, we can update the window
+---@return boolean
+function Device:present()
+	return self.window:loop() and not self.window.keys[27]
+end
+
+---Clamping values to keep them between 0 and 1
+---@param value number
+---@param min number?
+---@param max number?
+---@return number
+---@nodiscard
+function Device.clamp(value, min, max)
+	return math.max(min or 0, math.min(value, max or 1))
+end
+
+---Interpolating the value between 2 vertices
+---min is the starting point, max the ending point
+---and gradient the % between the 2 points
+---@param min number
+---@param max number
+---@param gradient number
+---@return number
+---@nodiscard
+function Device.interpolate(min, max, gradient)
+	return min + (max - min) * Device.clamp(gradient)
 end
 
 ---Project takes some 3D coordinates and transform them
@@ -114,37 +150,18 @@ function Device:project(vertex, trans_mat, world)
 	)
 end
 
----Calls put_pixel but does the clipping operation before
----@param point Vector3
----@param color integer
-function Device:draw_point(point, color)
-	-- Clipping what's visible on screen
-	if point.x >= 0 and point.y >= 0 and point.x < self.width and point.y < self.height then
-		-- Drawing a point
-		self:put_pixel(math.floor(point.x), math.floor(point.y), point.z, color)
-	end
-end
+---Compute the cosine of the angle between the light vector and the normal vector.
+---Returns a value between 0 and 1
+---@param vert Vector3
+---@param normal Vector3
+---@param light_position Vector3
+function Device.compute_ndotl(vert, normal, light_position)
+	local light_direction = light_position - vert
 
----Clamping values to keep them between 0 and 1
----@param value number
----@param min number?
----@param max number?
----@return number
----@nodiscard
-function Device.clamp(value, min, max)
-	return math.max(min or 0, math.min(value, max or 1))
-end
+	normal:normalize()
+	light_direction:normalize()
 
----Interpolating the value between 2 vertices
----min is the starting point, max the ending point
----and gradient the % between the 2 points
----@param min number
----@param max number
----@param gradient number
----@return number
----@nodiscard
-function Device.interpolate(min, max, gradient)
-	return min + (max - min) * Device.clamp(gradient)
+	return math.max(0, normal:dot(light_direction))
 end
 
 ---Drawing line between 2 points from left to right
@@ -211,20 +228,6 @@ function Device:process_scan_line(data, va, vb, vc, vd, texture)
 		local b = math.floor(texture_color_b * ndotl)
 		self:draw_point(Vector3.new(x, data.curr_y, z), fenster.rgb(r, g, b))
 	end
-end
-
----Compute the cosine of the angle between the light vector and the normal vector.
----Returns a value between 0 and 1
----@param vert Vector3
----@param normal Vector3
----@param light_position Vector3
-function Device.compute_ndotl(vert, normal, light_position)
-	local light_direction = light_position - vert
-
-	normal:normalize()
-	light_direction:normalize()
-
-	return math.max(0, normal:dot(light_direction))
 end
 
 ---Drawing triangle between 3 points
@@ -412,6 +415,20 @@ function Device:render(camera, meshes)
 	end
 end
 
+---Loading the JSON file and returning the array of meshes loaded
+---@param filename string
+---@return Mesh[]
+---@nodiscard
+function Device.load_json_file(filename)
+	local file = assert(io.open(filename, 'r'))
+	local json_object, _, err = json.decode(file:read('*all'))
+	assert(not err, err)
+	file:close()
+	assert(type(json_object) == 'table', 'json file does not contain an object')
+
+	return Device.create_meshes_from_json(json_object)
+end
+
 ---Create meshes from a JSON object
 ---@param json_object table
 ---@return Mesh[]
@@ -419,7 +436,7 @@ end
 function Device.create_meshes_from_json(json_object)
 	local materials = {} ---@type table<string, Material>
 	for mi = 1, #json_object.materials do
-		---@type {id:string,diffuseTexture:{name: string}}
+		---@type {id:string,diffuseTexture:{name:string}}
 		local curr_material = json_object.materials[mi]
 
 		local id = curr_material.id
@@ -505,20 +522,6 @@ function Device.create_meshes_from_json(json_object)
 	end
 
 	return meshes
-end
-
----Loading the JSON file and returning the array of meshes loaded
----@param filename string
----@return Mesh[]
----@nodiscard
-function Device.load_json_file(filename)
-	local file = assert(io.open(filename, 'r'))
-	local json_object, _, err = json.decode(file:read('*all'))
-	assert(not err, err)
-	file:close()
-	assert(type(json_object) == 'table', 'json file does not contain an object')
-
-	return Device.create_meshes_from_json(json_object)
 end
 
 return Device
