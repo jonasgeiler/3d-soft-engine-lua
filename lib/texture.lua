@@ -1,8 +1,10 @@
 local assert = assert
+local setmetatable = setmetatable
+local tostring = tostring
 local io = io
+local math = math
 local string = string
 local table = table
-local math = math
 
 local fenster = require('fenster')
 

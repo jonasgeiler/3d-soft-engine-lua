@@ -1,3 +1,7 @@
+local setmetatable = setmetatable
+local type = type
+local math = math
+
 ---@class Vector2
 ---@field x number
 ---@field y number

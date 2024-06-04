@@ -1,3 +1,5 @@
+local setmetatable = setmetatable
+
 local Vector3 = require('lib.vector3')
 
 ---@class Mesh

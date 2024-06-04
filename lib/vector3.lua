@@ -1,3 +1,4 @@
+local setmetatable = setmetatable
 local type = type
 local math = math
 

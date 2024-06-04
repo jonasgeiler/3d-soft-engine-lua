@@ -1,3 +1,5 @@
+local setmetatable = setmetatable
+
 ---@class Face
 ---@field a integer
 ---@field b integer

@@ -1,3 +1,5 @@
+local setmetatable = setmetatable
+
 ---@class Material
 ---@field texture Texture
 local Material = {}

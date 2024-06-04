@@ -1,3 +1,5 @@
+local setmetatable = setmetatable
+
 ---@class ScanLineData
 ---@field curr_y integer
 ---@field ndotla number
