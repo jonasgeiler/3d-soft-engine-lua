@@ -33,7 +33,7 @@ while device:present() do
 	end
 	device.window:set(30, 0, 0x0000ff)
 	device.window:set(60, 0, 0xff0000)
-	--]]
+	]]
 
 	for mi = 1, #meshes do
 		local mesh = meshes[mi]
