@@ -1,13 +1,13 @@
 local math = math
 local class = require('lib.class')
 
----@class matrix
----@overload fun(m11: number?, m12: number?, m13: number?, m14: number?, m21: number?, m22: number?, m23: number?, m24: number?, m31: number?, m32: number?, m33: number?, m34: number?, m41: number?, m42: number?, m43: number?, m44: number?): matrix
+---@class Matrix
+---@overload fun(m11: number?, m12: number?, m13: number?, m14: number?, m21: number?, m22: number?, m23: number?, m24: number?, m31: number?, m32: number?, m33: number?, m34: number?, m41: number?, m42: number?, m43: number?, m44: number?): Matrix
 ---@field m number[]
----@operator mul(matrix): matrix
-local matrix = class()
+---@operator mul(Matrix): Matrix
+local Matrix = class()
 
----Init the matrix
+---Creates a new matrix instance
 ---@param m11 number?
 ---@param m12 number?
 ---@param m13 number?
@@ -24,7 +24,7 @@ local matrix = class()
 ---@param m42 number?
 ---@param m43 number?
 ---@param m44 number?
-function matrix:new(
+function Matrix:new(
 	m11, m12, m13, m14,
 	m21, m22, m23, m24,
 	m31, m32, m33, m34,
@@ -38,50 +38,13 @@ function matrix:new(
 	}
 end
 
---TODO: Remove
-function matrix:__tostring()
-	return 'matrix((' ..
-		self.m[1] ..
-		', ' ..
-		self.m[2] ..
-		', ' ..
-		self.m[3] ..
-		', ' ..
-		self.m[4] ..
-		'), (' ..
-		self.m[5] ..
-		', ' ..
-		self.m[6] ..
-		', ' ..
-		self.m[7] ..
-		', ' ..
-		self.m[8] ..
-		'), (' ..
-		self.m[9] ..
-		', ' ..
-		self.m[10] ..
-		', ' ..
-		self.m[11] ..
-		', ' ..
-		self.m[12] ..
-		'), (' ..
-		self.m[13] ..
-		', ' ..
-		self.m[14] ..
-		', ' ..
-		self.m[15] ..
-		', ' ..
-		self.m[16] ..
-		'))'
-end
-
 ---Multiply two matrices
----@param a matrix
----@param b matrix
----@return matrix
+---@param a Matrix
+---@param b Matrix
+---@return Matrix
 ---@nodiscard
-function matrix.__mul(a, b)
-	return matrix(
+function Matrix.__mul(a, b)
+	return Matrix(
 		a.m[1] * b.m[1] + a.m[2] * b.m[5] + a.m[3] * b.m[9] + a.m[4] * b.m[13],
 		a.m[1] * b.m[2] + a.m[2] * b.m[6] + a.m[3] * b.m[10] + a.m[4] * b.m[14],
 		a.m[1] * b.m[3] + a.m[2] * b.m[7] + a.m[3] * b.m[11] + a.m[4] * b.m[15],
@@ -111,12 +74,12 @@ end
 
 ---Create a x-rotation matrix
 ---@param angle number
----@return matrix
+---@return Matrix
 ---@nodiscard
-function matrix.rotation_x(angle)
+function Matrix.rotation_x(angle)
 	local s = math.sin(angle)
 	local c = math.cos(angle)
-	return matrix(
+	return Matrix(
 		1, 0, 0, 0,
 		0, c, s, 0,
 		0, -s, c, 0,
@@ -126,12 +89,12 @@ end
 
 ---Create a y-rotation matrix
 ---@param angle number
----@return matrix
+---@return Matrix
 ---@nodiscard
-function matrix.rotation_y(angle)
+function Matrix.rotation_y(angle)
 	local s = math.sin(angle)
 	local c = math.cos(angle)
-	return matrix(
+	return Matrix(
 		c, 0, -s, 0,
 		0, 1, 0, 0,
 		s, 0, c, 0,
@@ -141,12 +104,12 @@ end
 
 ---Create a z-rotation matrix
 ---@param angle number
----@return matrix
+---@return Matrix
 ---@nodiscard
-function matrix.rotation_z(angle)
+function Matrix.rotation_z(angle)
 	local s = math.sin(angle)
 	local c = math.cos(angle)
-	return matrix(
+	return Matrix(
 		c, s, 0, 0,
 		-s, c, 0, 0,
 		0, 0, 1, 0,
@@ -158,22 +121,22 @@ end
 ---@param yaw number
 ---@param pitch number
 ---@param roll number
----@return matrix
+---@return Matrix
 ---@nodiscard
-function matrix.rotation_yaw_pitch_roll(yaw, pitch, roll)
-	return matrix.rotation_z(roll) *
-		matrix.rotation_x(pitch) *
-		matrix.rotation_y(yaw)
+function Matrix.rotation_yaw_pitch_roll(yaw, pitch, roll)
+	return Matrix.rotation_z(roll) *
+		Matrix.rotation_x(pitch) *
+		Matrix.rotation_y(yaw)
 end
 
 ---Create a translation matrix
 ---@param x number
 ---@param y number
 ---@param z number
----@return matrix
+---@return Matrix
 ---@nodiscard
-function matrix.translation(x, y, z)
-	return matrix(
+function Matrix.translation(x, y, z)
+	return Matrix(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
@@ -182,12 +145,12 @@ function matrix.translation(x, y, z)
 end
 
 ---Create a look-at matrix for a left-handed coordinate system
----@param eye vec3
----@param target vec3
----@param up vec3
----@return matrix
+---@param eye Vector3
+---@param target Vector3
+---@param up Vector3
+---@return Matrix
 ---@nodiscard
-function matrix.look_at_lh(eye, target, up)
+function Matrix.look_at_lh(eye, target, up)
 	local z_axis = (target - eye)
 	z_axis:normalize()
 	local x_axis = up:cross(z_axis)
@@ -195,7 +158,7 @@ function matrix.look_at_lh(eye, target, up)
 	local y_axis = z_axis:cross(x_axis)
 	y_axis:normalize()
 
-	return matrix(
+	return Matrix(
 		x_axis.x, y_axis.x, z_axis.x, 0,
 		x_axis.y, y_axis.y, z_axis.y, 0,
 		x_axis.z, y_axis.z, z_axis.z, 0,
@@ -208,11 +171,11 @@ end
 ---@param aspect number
 ---@param z_near number
 ---@param z_far number
----@return matrix
+---@return Matrix
 ---@nodiscard
-function matrix.perspective_fov_lh(fov, aspect, z_near, z_far)
+function Matrix.perspective_fov_lh(fov, aspect, z_near, z_far)
 	local tan = 1 / math.tan(fov / 2)
-	return matrix(
+	return Matrix(
 		tan / aspect, 0, 0, 0,
 		0, tan, 0, 0,
 		0, 0, -z_far / (z_near - z_far), 1,
@@ -220,4 +183,4 @@ function matrix.perspective_fov_lh(fov, aspect, z_near, z_far)
 	)
 end
 
-return matrix
+return Matrix

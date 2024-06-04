@@ -3,21 +3,20 @@ local io = io
 local type = type
 local math = math
 local class = require('lib.class')
-local vec3 = require('lib.vec3')
-local matrix = require('lib.matrix')
+local Vector3 = require('lib.vector3')
+local Matrix = require('lib.matrix')
 local dkjson = require('dkjson')
-local mesh = require('lib.mesh')
-local face = require('lib.face')
+local Mesh = require('lib.mesh')
+local Face = require('lib.face')
 local fenster = require('fenster')
-local vertex = require('lib.vertex')
-local scan_line_data = require('lib.scan_line_data')
-local material = require('lib.material')
-local vec2 = require('lib.vec2')
-local texture = require('lib.texture')
+local Vertex = require('lib.vertex')
+local ScanLineData = require('lib.scanlinedata')
+local Material = require('lib.material')
+local Vector2 = require('lib.vector2')
+local Texture = require('lib.texture')
 
----Represents the rendering device (window)
----@class device
----@overload fun(window: window*): device
+---@class Device
+---@overload fun(window: window*): Device
 ---@field window window*
 ---@field width integer
 ---@field height integer
@@ -26,11 +25,11 @@ local texture = require('lib.texture')
 ---@field half_height number
 ---@field depth_buffer number[]
 ---@field depth_buffer_size integer
-local device = class()
+local Device = class()
 
----Init the device
+---Creates a new device instance
 ---@param window window*
-function device:new(window)
+function Device:new(window)
 	self.window = window
 
 	self.width = window.width
@@ -44,7 +43,7 @@ function device:new(window)
 end
 
 ---This function is called to clear the window buffer with a specific color
-function device:clear()
+function Device:clear()
 	-- Clearing with black color by default
 	self.window:clear()
 
@@ -56,7 +55,8 @@ function device:clear()
 end
 
 ---Once everything is ready, we can update the window
-function device:present()
+---@return boolean
+function Device:present()
 	return self.window:loop() and not self.window.keys[27]
 end
 
@@ -65,7 +65,7 @@ end
 ---@param y integer
 ---@param z number
 ---@param color integer
-function device:put_pixel(x, y, z, color)
+function Device:put_pixel(x, y, z, color)
 	local index = x + y * self.width
 	if self.depth_buffer[index] < z then
 		return
@@ -79,18 +79,18 @@ end
 ---in 2D coordinates using the transformation matrix.
 ---It also transform the same coordinates and the normal to the vertex
 ---in the 3D world
----@param vert vertex
----@param trans_mat matrix
----@param world matrix
----@return vertex
+---@param vertex Vertex
+---@param trans_mat Matrix
+---@param world Matrix
+---@return Vertex
 ---@nodiscard
-function device:project(vert, trans_mat, world)
+function Device:project(vertex, trans_mat, world)
 	-- Transforming the coordinates
-	local point_2d = vert.coordinates:transform_coordinates(trans_mat)
+	local point_2d = vertex.coordinates:transform_coordinates(trans_mat)
 
 	-- Transforming the coordinates & the normal to the vertex in the 3D world
-	local point_3d_world = vert.coordinates:transform_coordinates(world)
-	local normal_3d_world = vert.normal:transform_coordinates(world)
+	local point_3d_world = vertex.coordinates:transform_coordinates(world)
+	local normal_3d_world = vertex.normal:transform_coordinates(world)
 
 	-- The transformed coordinates will be based on coordinate system
 	-- starting on the center of the screen. But drawing on screen normally starts
@@ -98,18 +98,18 @@ function device:project(vert, trans_mat, world)
 	local x = point_2d.x * self.width + self.half_width
 	local y = -point_2d.y * self.height + self.half_height
 
-	return vertex(
-		vec3(x, y, point_2d.z),
+	return Vertex(
+		Vector3(x, y, point_2d.z),
 		normal_3d_world,
 		point_3d_world,
-		vert.texture_coordinates
+		vertex.texture_coordinates
 	)
 end
 
 ---Calls put_pixel but does the clipping operation before
----@param point vec3
+---@param point Vector3
 ---@param color integer
-function device:draw_point(point, color)
+function Device:draw_point(point, color)
 	-- Clipping what's visible on screen
 	if point.x >= 0 and point.y >= 0 and point.x < self.width and point.y < self.height then
 		-- Drawing a point
@@ -123,7 +123,7 @@ end
 ---@param max number?
 ---@return number
 ---@nodiscard
-function device:clamp(value, min, max)
+function Device:clamp(value, min, max)
 	return math.max(min or 0, math.min(value, max or 1))
 end
 
@@ -133,20 +133,22 @@ end
 ---@param min number
 ---@param max number
 ---@param gradient number
-function device:interpolate(min, max, gradient)
+---@return number
+---@nodiscard
+function Device:interpolate(min, max, gradient)
 	return min + (max - min) * self:clamp(gradient)
 end
 
 ---Drawing line between 2 points from left to right
 ---papb -> pcpd
 ---pa, pb, pc, pd must then be sorted before
----@param data scan_line_data
----@param va vertex
----@param vb vertex
----@param vc vertex
----@param vd vertex
----@param tex texture?
-function device:process_scan_line(data, va, vb, vc, vd, tex)
+---@param data ScanLineData
+---@param va Vertex
+---@param vb Vertex
+---@param vc Vertex
+---@param vd Vertex
+---@param texture Texture?
+function Device:process_scan_line(data, va, vb, vc, vd, texture)
 	local pa = va.coordinates
 	local pb = vb.coordinates
 	local pc = vc.coordinates
@@ -185,7 +187,7 @@ function device:process_scan_line(data, va, vb, vc, vd, tex)
 		local u = self:interpolate(su, eu, gradient)
 		local v = self:interpolate(sv, ev, gradient)
 
-		local texture_color = tex and tex:map(u, v) or 0xffffff
+		local texture_color = texture and texture:map(u, v) or 0xffffff
 		local texture_color_r, texture_color_g, texture_color_b = fenster.rgb(texture_color)
 
 		-- Changing the native color value using the cosine of the angle
@@ -193,16 +195,16 @@ function device:process_scan_line(data, va, vb, vc, vd, tex)
 		local r = math.floor(texture_color_r * ndotl)
 		local g = math.floor(texture_color_g * ndotl)
 		local b = math.floor(texture_color_b * ndotl)
-		self:draw_point(vec3(x, data.curr_y, z), fenster.rgb(r, g, b))
+		self:draw_point(Vector3(x, data.curr_y, z), fenster.rgb(r, g, b))
 	end
 end
 
 ---Compute the cosine of the angle between the light vector and the normal vector.
 ---Returns a value between 0 and 1
----@param vert vec3
----@param normal vec3
----@param light_position vec3
-function device:compute_ndotl(vert, normal, light_position)
+---@param vert Vector3
+---@param normal Vector3
+---@param light_position Vector3
+function Device:compute_ndotl(vert, normal, light_position)
 	local light_direction = light_position - vert
 
 	normal:normalize()
@@ -212,21 +214,24 @@ function device:compute_ndotl(vert, normal, light_position)
 end
 
 ---Drawing triangle between 3 points
----@param v1 vertex
----@param v2 vertex
----@param v3 vertex
----@param tex texture?
-function device:draw_triangle(v1, v2, v3, tex)
+---@param v1 Vertex
+---@param v2 Vertex
+---@param v3 Vertex
+---@param texture Texture?
+function Device:draw_triangle(v1, v2, v3, texture)
 	-- Sorting the points in order to always have this order on screen p1, p2 & p3
 	-- with p1 always up (thus having the Y the lowest possible to be near the top screen)
 	-- then p2 between p1 & p3
 	if v1.coordinates.y > v2.coordinates.y then
+		---@diagnostic disable-next-line: no-unknown
 		v1, v2 = v2, v1
 	end
 	if v2.coordinates.y > v3.coordinates.y then
+		---@diagnostic disable-next-line: no-unknown
 		v2, v3 = v3, v2
 	end
 	if v1.coordinates.y > v2.coordinates.y then
+		---@diagnostic disable-next-line: no-unknown
 		v1, v2 = v2, v1
 	end
 
@@ -235,7 +240,7 @@ function device:draw_triangle(v1, v2, v3, tex)
 	local p3 = v3.coordinates
 
 	-- Light position
-	local light_pos = vec3(0, 10, 10)
+	local light_pos = Vector3(0, 10, 10)
 
 	-- Computing the cos of the angle between the light vector and the normal vector
 	-- it will return a value between 0 and 1 that will be used as the intensity of the color
@@ -243,7 +248,7 @@ function device:draw_triangle(v1, v2, v3, tex)
 	local nl2 = self:compute_ndotl(v2.world_coordinates, v2.normal, light_pos)
 	local nl3 = self:compute_ndotl(v3.world_coordinates, v3.normal, light_pos)
 
-	local data = scan_line_data()
+	local data = ScanLineData()
 
 	-- Computing lines' directions
 	local d_p1_p2 ---@type number
@@ -281,7 +286,7 @@ function device:draw_triangle(v1, v2, v3, tex)
 				data.vb = v3.texture_coordinates.y
 				data.vc = v1.texture_coordinates.y
 				data.vd = v2.texture_coordinates.y
-				self:process_scan_line(data, v1, v3, v1, v2, tex)
+				self:process_scan_line(data, v1, v3, v1, v2, texture)
 			else
 				data.ndotla = nl1
 				data.ndotlb = nl3
@@ -298,7 +303,7 @@ function device:draw_triangle(v1, v2, v3, tex)
 				data.vc = v2.texture_coordinates.y
 				data.vd = v3.texture_coordinates.y
 
-				self:process_scan_line(data, v1, v3, v2, v3, tex)
+				self:process_scan_line(data, v1, v3, v2, v3, texture)
 			end
 		end
 	else
@@ -321,7 +326,7 @@ function device:draw_triangle(v1, v2, v3, tex)
 				data.vc = v1.texture_coordinates.y
 				data.vd = v3.texture_coordinates.y
 
-				self:process_scan_line(data, v1, v2, v1, v3, tex)
+				self:process_scan_line(data, v1, v2, v1, v3, texture)
 			else
 				data.ndotla = nl2
 				data.ndotlb = nl3
@@ -338,22 +343,22 @@ function device:draw_triangle(v1, v2, v3, tex)
 				data.vc = v1.texture_coordinates.y
 				data.vd = v3.texture_coordinates.y
 
-				self:process_scan_line(data, v2, v3, v1, v3, tex)
+				self:process_scan_line(data, v2, v3, v1, v3, texture)
 			end
 		end
 	end
 end
 
 ---The main method of the engine that re-compute each vertex projection during each frame
----@param camera camera
----@param meshes mesh[]
-function device:render(camera, meshes)
-	local view_matrix = matrix.look_at_lh(
+---@param camera Camera
+---@param meshes Mesh[]
+function Device:render(camera, meshes)
+	local view_matrix = Matrix.look_at_lh(
 		camera.position,
 		camera.target,
-		vec3(0, 1, 0)
+		Vector3(0, 1, 0)
 	)
-	local projection_matrix = matrix.perspective_fov_lh(
+	local projection_matrix = Matrix.perspective_fov_lh(
 		0.78,
 		self.aspect,
 		0.01,
@@ -365,11 +370,11 @@ function device:render(camera, meshes)
 		local curr_mesh = meshes[mi]
 
 		-- Beware to apply rotation before translation
-		local world_matrix = matrix.rotation_yaw_pitch_roll(
+		local world_matrix = Matrix.rotation_yaw_pitch_roll(
 			curr_mesh.rotation.y,
 			curr_mesh.rotation.x,
 			curr_mesh.rotation.z
-		) * matrix.translation(
+		) * Matrix.translation(
 			curr_mesh.position.x,
 			curr_mesh.position.y,
 			curr_mesh.position.z
@@ -388,28 +393,28 @@ function device:render(camera, meshes)
 			local point_b = self:project(vertex_b, transform_matrix, world_matrix)
 			local point_c = self:project(vertex_c, transform_matrix, world_matrix)
 
-			self:draw_triangle(point_a, point_b, point_c, curr_mesh.tex)
+			self:draw_triangle(point_a, point_b, point_c, curr_mesh.texture)
 		end
 	end
 end
 
 ---Create meshes from a JSON object
 ---@param json_object table
----@return mesh[]
+---@return Mesh[]
 ---@nodiscard
-function device:create_meshes_from_json(json_object)
-	local materials = {} ---@type table<string, material>
+function Device:create_meshes_from_json(json_object)
+	local materials = {} ---@type table<string, Material>
 	for mi = 1, #json_object.materials do
 		local id = json_object.materials[mi].id ---@type string
 		local diffuse_texture = json_object.materials[mi].diffuseTexture ---@type {name: string}
 
 		if diffuse_texture then
-			local tex = texture('./assets/' .. diffuse_texture.name)
-			materials[id] = material(tex)
+			local texture = Texture('./assets/' .. diffuse_texture.name)
+			materials[id] = Material(texture)
 		end
 	end
 
-	local meshes = {} ---@type mesh[]
+	local meshes = {} ---@type Mesh[]
 	for mi = 1, #json_object.meshes do
 		local vertices = json_object.meshes[mi].vertices ---@type number[]
 		local indices = json_object.meshes[mi].indices ---@type integer[]
@@ -432,7 +437,7 @@ function device:create_meshes_from_json(json_object)
 		-- Number of faces is logically the size of the array divided by 3 (A, B, C)
 		local faces_count = #indices / 3
 
-		local new_mesh = mesh()
+		local new_mesh = Mesh()
 		-- Filling the vertices array of our mesh first
 		for vi = 1, vertices_count do
 			local x = vertices[(vi - 1) * vertices_step + 1]
@@ -444,21 +449,21 @@ function device:create_meshes_from_json(json_object)
 			local ny = vertices[(vi - 1) * vertices_step + 5]
 			local nz = vertices[(vi - 1) * vertices_step + 6]
 
-			new_mesh.vertices[vi] = vertex(
-				vec3(x, y, z),
-				vec3(nx, ny, nz)
+			new_mesh.vertices[vi] = Vertex(
+				Vector3(x, y, z),
+				Vector3(nx, ny, nz)
 			)
 
 			if uv_count > 0 then
 				-- Loading the texture coordinates
 				local u = vertices[(vi - 1) * vertices_step + 7]
 				local v = vertices[(vi - 1) * vertices_step + 8]
-				new_mesh.vertices[vi].texture_coordinates = vec2(u, v)
+				new_mesh.vertices[vi].texture_coordinates = Vector2(u, v)
 			end
 		end
 		-- Then filling the faces array
 		for fi = 1, faces_count do
-			new_mesh.faces[fi] = face(
+			new_mesh.faces[fi] = Face(
 				indices[(fi - 1) * 3 + 1] + 1,
 				indices[(fi - 1) * 3 + 2] + 1,
 				indices[(fi - 1) * 3 + 3] + 1
@@ -466,7 +471,7 @@ function device:create_meshes_from_json(json_object)
 		end
 
 		-- Getting the position of the mesh
-		new_mesh.position = vec3(
+		new_mesh.position = Vector3(
 			json_object.meshes[mi].position[1],
 			json_object.meshes[mi].position[2],
 			json_object.meshes[mi].position[3]
@@ -474,7 +479,7 @@ function device:create_meshes_from_json(json_object)
 
 		if uv_count > 0 then
 			local mesh_texture_id = json_object.meshes[mi].materialId ---@type string
-			new_mesh.tex = materials[mesh_texture_id].tex
+			new_mesh.texture = materials[mesh_texture_id].texture
 		end
 
 		meshes[#meshes + 1] = new_mesh
@@ -485,9 +490,9 @@ end
 
 ---Loading the JSON file and returning the array of meshes loaded
 ---@param filename string
----@return mesh[]
+---@return Mesh[]
 ---@nodiscard
-function device:load_json_file(filename)
+function Device:load_json_file(filename)
 	local file = assert(io.open(filename, 'r'))
 	local json_object = dkjson.decode(file:read('*all'))
 	file:close()
@@ -498,4 +503,4 @@ function device:load_json_file(filename)
 	return self:create_meshes_from_json(json_object)
 end
 
-return device
+return Device

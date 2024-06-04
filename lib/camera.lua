@@ -1,17 +1,18 @@
 local class = require('lib.class')
-local vec3 = require('lib.vec3')
+local Vector3 = require('lib.vector3')
 
----Represents a camera
----@class camera
----@overload fun(): camera
----@field position vec3
----@field target vec3
-local camera = class()
+---@class Camera
+---@overload fun(position: Vector3?, target: Vector3?): Camera
+---@field position Vector3
+---@field target Vector3
+local Camera = class()
 
----Init the camera
-function camera:new()
-	self.position = vec3()
-	self.target = vec3()
+---Creates a new camera instance
+---@param position Vector3?
+---@param target Vector3?
+function Camera:new(position, target)
+	self.position = position or Vector3()
+	self.target = target or Vector3()
 end
 
-return camera
+return Camera

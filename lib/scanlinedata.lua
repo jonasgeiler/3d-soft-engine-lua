@@ -1,8 +1,7 @@
 local class = require('lib.class')
 
----Represents scan line data
----@class scan_line_data
----@overload fun(curr_y: integer?, ndotla: number?, ndotlb: number?, ndotlc: number?, ndotld: number?, ua: number?, ub: number?, uc: number?, ud: number?, va: number?, vb: number?, vc: number?, vd: number?): scan_line_data
+---@class ScanLineData
+---@overload fun(curr_y: integer?, ndotla: number?, ndotlb: number?, ndotlc: number?, ndotld: number?, ua: number?, ub: number?, uc: number?, ud: number?, va: number?, vb: number?, vc: number?, vd: number?): ScanLineData
 ---@field curr_y integer
 ---@field ndotla number
 ---@field ndotlb number
@@ -16,9 +15,9 @@ local class = require('lib.class')
 ---@field vb number
 ---@field vc number
 ---@field vd number
-local scan_line_data = class()
+local ScanLineData = class()
 
----Init the scan line data
+---Creates a new scan line data instance
 ---@param curr_y integer?
 ---@param ndotla number?
 ---@param ndotlb number?
@@ -32,7 +31,7 @@ local scan_line_data = class()
 ---@param vb number?
 ---@param vc number?
 ---@param vd number?
-function scan_line_data:new(
+function ScanLineData:new(
 	curr_y,
 	ndotla, ndotlb, ndotlc, ndotld,
 	ua, ub, uc, ud,
@@ -53,4 +52,4 @@ function scan_line_data:new(
 	self.vd = vd or 0
 end
 
-return scan_line_data
+return ScanLineData

@@ -6,17 +6,16 @@ local math = math
 local class = require('lib.class')
 local fenster = require('fenster')
 
----Represents a PPM texture
----@class texture
----@overload fun(filename: string): texture
+---@class Texture
+---@overload fun(filename: string): Texture
 ---@field buffer integer[]
 ---@field width integer
 ---@field height integer
-local texture = class()
+local Texture = class()
 
----Init the texture (load from PPM file)
+---Creates a new texture instance and loads the texture from a PPM file
 ---@param filename string
-function texture:new(filename)
+function Texture:new(filename)
 	local image = assert(io.open(filename, 'rb'))
 
 	local image_type = image:read(2)
@@ -57,7 +56,7 @@ end
 ---@param tv number
 ---@return integer
 ---@nodiscard
-function texture:map(tu, tv)
+function Texture:map(tu, tv)
 	-- Using a % operator to cycle/repeat the texture if needed
 	local u = math.abs(math.floor(tu * self.width) % self.width)
 	local v = math.abs(math.floor(tv * self.height) % self.height)
@@ -65,4 +64,4 @@ function texture:map(tu, tv)
 	return self.buffer[(u + v * self.width) + 1]
 end
 
-return texture
+return Texture

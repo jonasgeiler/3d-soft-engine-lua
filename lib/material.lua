@@ -1,15 +1,14 @@
 local class = require('lib.class')
 
----Represents a material
----@class material
----@overload fun(tex: texture): material
----@field tex texture
-local material = class()
+---@class Material
+---@overload fun(texture: Texture): Material
+---@field texture Texture
+local Material = class()
 
----Init the material
----@param tex texture
-function material:new(tex)
-	self.tex = tex
+---Creates a new material instance
+---@param texture Texture
+function Material:new(texture)
+	self.texture = texture
 end
 
-return material
+return Material

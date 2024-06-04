@@ -1,28 +1,27 @@
 local class = require('lib.class')
-local vec3 = require('lib.vec3')
+local Vector3 = require('lib.vector3')
 
----Represents a mesh
----@class mesh
----@overload fun(vertices: vertex[]?, faces: face[]?, rotation: vec3?, position: vec3?, tex: texture?): mesh
----@field position vec3
----@field rotation vec3
----@field vertices vertex[]
----@field faces face[]
----@field tex texture?
-local mesh = class()
+---@class Mesh
+---@overload fun(vertices: Vertex[]?, faces: Face[]?, rotation: Vector3?, position: Vector3?, texture: Texture?): Mesh
+---@field position Vector3
+---@field rotation Vector3
+---@field vertices Vertex[]
+---@field faces Face[]
+---@field texture Texture?
+local Mesh = class()
 
----Init the mesh
----@param vertices vertex[]?
----@param faces face[]?
----@param rotation vec3?
----@param position vec3?
----@param tex texture?
-function mesh:new(vertices, faces, rotation, position, tex)
+---Creates a new mesh instance
+---@param vertices Vertex[]?
+---@param faces Face[]?
+---@param rotation Vector3?
+---@param position Vector3?
+---@param texture Texture?
+function Mesh:new(vertices, faces, rotation, position, texture)
 	self.vertices = vertices or {}
 	self.faces = faces or {}
-	self.rotation = rotation or vec3()
-	self.position = position or vec3()
-	self.tex = tex
+	self.rotation = rotation or Vector3()
+	self.position = position or Vector3()
+	self.texture = texture
 end
 
-return mesh
+return Mesh

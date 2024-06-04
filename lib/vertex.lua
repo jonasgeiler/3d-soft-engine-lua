@@ -1,26 +1,25 @@
 local class = require('lib.class')
-local vec3 = require('lib.vec3')
-local vec2 = require('lib.vec2')
+local Vector3 = require('lib.vector3')
+local Vector2 = require('lib.vector2')
 
----Represents a geometric vertex
----@class vertex
----@overload fun(coordinates: vec3, normal: vec3, world_coordinates: vec3?, texture_coordinates: vec2?): vertex
----@field coordinates vec3
----@field normal vec3
----@field world_coordinates vec3
----@field texture_coordinates vec2
-local vertex = class()
+---@class Vertex
+---@overload fun(coordinates: Vector3, normal: Vector3, world_coordinates: Vector3?, texture_coordinates: Vector2?): Vertex
+---@field coordinates Vector3
+---@field normal Vector3
+---@field world_coordinates Vector3
+---@field texture_coordinates Vector2
+local Vertex = class()
 
----Init the vertex
----@param coordinates vec3
----@param normal vec3
----@param world_coordinates vec3?
----@param texture_coordinates vec2?
-function vertex:new(coordinates, normal, world_coordinates, texture_coordinates)
+---Creates a new vertex instance
+---@param coordinates Vector3
+---@param normal Vector3
+---@param world_coordinates Vector3?
+---@param texture_coordinates Vector2?
+function Vertex:new(coordinates, normal, world_coordinates, texture_coordinates)
 	self.coordinates = coordinates
 	self.normal = normal
-	self.world_coordinates = world_coordinates or vec3()
-	self.texture_coordinates = texture_coordinates or vec2()
+	self.world_coordinates = world_coordinates or Vector3()
+	self.texture_coordinates = texture_coordinates or Vector2()
 end
 
-return vertex
+return Vertex

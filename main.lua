@@ -1,25 +1,22 @@
 local fenster = require('fenster')
-local camera = require('lib.camera')
-local device = require('lib.device')
-local vec3 = require('lib.vec3')
+local Camera = require('lib.camera')
+local Device = require('lib.device')
+local Vector3 = require('lib.vector3')
 
 local window = fenster.open(640, 480, '3D Soft Engine')
 
-local cam = camera()
-local dev = device(window)
+local camera = Camera(Vector3(0, 0, 10), Vector3(0, 0, 0))
+local device = Device(window)
 
-cam.position = vec3(0, 0, 10)
-cam.target = vec3(0, 0, 0)
+local meshes = device:load_json_file('./assets/monkey.babylon')
 
-local meshes = dev:load_json_file('./assets/monkey.babylon')
-
-while dev:present() do
-	dev:clear()
+while device:present() do
+	device:clear()
 
 	for mi = 1, #meshes do
 		local mesh = meshes[mi]
-		mesh.rotation.y = mesh.rotation.y + 0.5 * dev.window.delta
+		mesh.rotation.y = mesh.rotation.y + 0.5 * device.window.delta
 	end
 
-	dev:render(cam, meshes)
+	device:render(camera, meshes)
 end
