@@ -9,6 +9,8 @@ local dkjson = require('dkjson')
 local mesh = require('lib.mesh')
 local face = require('lib.face')
 local fenster = require('fenster')
+local vertex = require('lib.vertex')
+local scan_line_data = require('lib.scan_line_data')
 
 ---Represents the rendering device (window)
 ---@class device
@@ -70,22 +72,30 @@ function device:put_pixel(x, y, z, color)
 	self.window:set(x, y, color)
 end
 
----Project takes some 3D coordinates and transform them in 2D coordinates using the transformation matrix
----@param coord vec3
+---Project takes some 3D coordinates and transform them
+---in 2D coordinates using the transformation matrix.
+---It also transform the same coordinates and the normal to the vertex
+---in the 3D world
+---@param vert vertex
 ---@param trans_mat matrix
----@return vec3
+---@param world matrix
+---@return vertex
 ---@nodiscard
-function device:project(coord, trans_mat)
-	--- Transforming the coordinates
-	local point = coord:transform_coordinates(trans_mat)
+function device:project(vert, trans_mat, world)
+	-- Transforming the coordinates
+	local point_2d = vert.coordinates:transform_coordinates(trans_mat)
+
+	-- Transforming the coordinates & the normal to the vertex in the 3D world
+	local point_3d_world = vert.coordinates:transform_coordinates(world)
+	local normal_3d_world = vert.normal:transform_coordinates(world)
 
 	-- The transformed coordinates will be based on coordinate system
 	-- starting on the center of the screen. But drawing on screen normally starts
 	-- from top left. We then need to transform them again to have x:0, y:0 on top left.
-	local x = point.x * self.width + self.half_width
-	local y = -point.y * self.height + self.half_height
+	local x = point_2d.x * self.width + self.half_width
+	local y = -point_2d.y * self.height + self.half_height
 
-	return vec3(x, y, point.z)
+	return vertex(vec3(x, y, point_2d.z), normal_3d_world, point_3d_world)
 end
 
 ---Calls put_pixel but does the clipping operation before
@@ -122,18 +132,24 @@ end
 ---Drawing line between 2 points from left to right
 ---papb -> pcpd
 ---pa, pb, pc, pd must then be sorted before
----@param y integer
----@param pa vec3
----@param pb vec3
----@param pc vec3
----@param pd vec3
+---@param data scan_line_data
+---@param va vertex
+---@param vb vertex
+---@param vc vertex
+---@param vd vertex
 ---@param color integer
-function device:process_scan_line(y, pa, pb, pc, pd, color)
+function device:process_scan_line(data, va, vb, vc, vd, color)
+	local pa = va.coordinates
+	local pb = vb.coordinates
+	local pc = vc.coordinates
+	local pd = vd.coordinates
+	local color_r, color_g, color_b = fenster.rgb(color)
+
 	-- Thanks to current Y, we can compute the gradient to compute others values like
 	-- the starting X (sx) and ending X (ex) to draw between
 	-- if pa.Y == pb.Y or pc.Y == pd.Y, gradient is forced to 1
-	local gradient1 = pa.y ~= pb.y and ((y - pa.y) / (pb.y - pa.y)) or 1
-	local gradient2 = pc.y ~= pd.y and ((y - pc.y) / (pd.y - pc.y)) or 1
+	local gradient1 = pa.y ~= pb.y and ((data.curr_y - pa.y) / (pb.y - pa.y)) or 1
+	local gradient2 = pc.y ~= pd.y and ((data.curr_y - pc.y) / (pd.y - pc.y)) or 1
 
 	local sx = math.floor(self:interpolate(pa.x, pb.x, gradient1))
 	local ex = math.floor(self:interpolate(pc.x, pd.x, gradient2))
@@ -146,30 +162,69 @@ function device:process_scan_line(y, pa, pb, pc, pd, color)
 	for x = sx, ex - 1 do
 		local gradient = (x - sx) / (ex - sx)
 		local z = self:interpolate(z1, z2, gradient)
-		self:draw_point(vec3(x, y, z), color)
+		local ndotl = data.ndotla
+
+		-- Changing the color value using the cosine of the angle
+		-- between the light vector and the normal vector
+		local r = math.floor(color_r * ndotl)
+		local g = math.floor(color_g * ndotl)
+		local b = math.floor(color_b * ndotl)
+		self:draw_point(vec3(x, data.curr_y, z), fenster.rgb(r, g, b))
 	end
 end
 
+---Compute the cosine of the angle between the light vector and the normal vector.
+---Returns a value between 0 and 1
+---@param vert vec3
+---@param normal vec3
+---@param light_position vec3
+function device:compute_ndotl(vert, normal, light_position)
+	local light_direction = light_position - vert
+
+	normal:normalize()
+	light_direction:normalize()
+
+	return math.max(0, normal:dot(light_direction))
+end
+
 ---Drawing triangle between 3 points
----@param p1 vec3
----@param p2 vec3
----@param p3 vec3
+---@param v1 vertex
+---@param v2 vertex
+---@param v3 vertex
 ---@param color integer
-function device:draw_triangle(p1, p2, p3, color)
+function device:draw_triangle(v1, v2, v3, color)
 	-- Sorting the points in order to always have this order on screen p1, p2 & p3
 	-- with p1 always up (thus having the Y the lowest possible to be near the top screen)
 	-- then p2 between p1 & p3
-	if p1.y > p2.y then
-		p1, p2 = p2, p1
+	if v1.coordinates.y > v2.coordinates.y then
+		v1, v2 = v2, v1
 	end
-	if p2.y > p3.y then
-		p2, p3 = p3, p2
+	if v2.coordinates.y > v3.coordinates.y then
+		v2, v3 = v3, v2
 	end
-	if p1.y > p2.y then
-		p1, p2 = p2, p1
+	if v1.coordinates.y > v2.coordinates.y then
+		v1, v2 = v2, v1
 	end
 
-	-- inverse slopes
+	local p1 = v1.coordinates
+	local p2 = v2.coordinates
+	local p3 = v3.coordinates
+
+	-- Normal face's vector is the average normal between each vertex's normal
+	-- computing also the center point of the face
+	local vn_face = (v1.normal + v2.normal + v3.normal) / 3
+	local center_point = (v1.world_coordinates + v2.world_coordinates + v3.world_coordinates) / 3
+
+	-- Light position
+	local light_pos = vec3(0, 10, 10)
+
+	-- Computing the cos of the angle between the light vector and the normal vector
+	-- it will return a value between 0 and 1 that will be used as the intensity of the color
+	local ndotl = self:compute_ndotl(center_point, vn_face, light_pos)
+
+	local data = scan_line_data(nil, ndotl)
+
+	-- Computing lines' directions
 	local d_p1_p2 ---@type number
 	local d_p1_p3 ---@type number
 
@@ -199,10 +254,12 @@ function device:draw_triangle(p1, p2, p3, color)
 	-- P3
 	if d_p1_p2 > d_p1_p3 then
 		for y = math.floor(p1.y), math.floor(p3.y) do
+			data.curr_y = y
+
 			if y < p2.y then
-				self:process_scan_line(y, p1, p3, p1, p2, color)
+				self:process_scan_line(data, v1, v3, v1, v2, color)
 			else
-				self:process_scan_line(y, p1, p3, p2, p3, color)
+				self:process_scan_line(data, v1, v3, v2, v3, color)
 			end
 		end
 	else
@@ -218,10 +275,12 @@ function device:draw_triangle(p1, p2, p3, color)
 		--        -
 		--       P3
 		for y = math.floor(p1.y), math.floor(p3.y) do
+			data.curr_y = y
+
 			if y < p2.y then
-				self:process_scan_line(y, p1, p2, p1, p3, color)
+				self:process_scan_line(data, v1, v2, v1, v3, color)
 			else
-				self:process_scan_line(y, p2, p3, p1, p3, color)
+				self:process_scan_line(data, v2, v3, v1, v3, color)
 			end
 		end
 	end
@@ -267,15 +326,15 @@ function device:render(camera, meshes)
 			local vertex_b = curr_mesh.vertices[curr_face.b]
 			local vertex_c = curr_mesh.vertices[curr_face.c]
 
-			local point_a = self:project(vertex_a, transform_matrix)
-			local point_b = self:project(vertex_b, transform_matrix)
-			local point_c = self:project(vertex_c, transform_matrix)
+			local point_a = self:project(vertex_a, transform_matrix, world_matrix)
+			local point_b = self:project(vertex_b, transform_matrix, world_matrix)
+			local point_c = self:project(vertex_c, transform_matrix, world_matrix)
 
-			local color = 0.25 + (((fi - 1) % curr_mesh_faces_count) / curr_mesh_faces_count) * 0.75
-			local r = math.floor(255 * color)
-			local g = math.floor(255 * color)
-			local b = math.floor(255 * color)
-			self:draw_triangle(point_a, point_b, point_c, fenster.rgb(r, g, b))
+			--local color = 0.25 + (((fi - 1) % curr_mesh_faces_count) / curr_mesh_faces_count) * 0.75
+			--local r = math.floor(255 * color)
+			--local g = math.floor(255 * color)
+			--local b = math.floor(255 * color)
+			self:draw_triangle(point_a, point_b, point_c, 0xffffff)
 		end
 	end
 end
@@ -311,10 +370,18 @@ function device:create_meshes_from_json(json_object)
 		local new_mesh = mesh()
 		-- Filling the vertices array of our mesh first
 		for vi = 1, vertices_count do
-			new_mesh.vertices[vi] = vec3(
-				vertices[(vi - 1) * vertices_step + 1],
-				vertices[(vi - 1) * vertices_step + 2],
-				vertices[(vi - 1) * vertices_step + 3]
+			local x = vertices[(vi - 1) * vertices_step + 1]
+			local y = vertices[(vi - 1) * vertices_step + 2]
+			local z = vertices[(vi - 1) * vertices_step + 3]
+
+			-- Loading the vertex normal exported by Blender
+			local nx = vertices[(vi - 1) * vertices_step + 4]
+			local ny = vertices[(vi - 1) * vertices_step + 5]
+			local nz = vertices[(vi - 1) * vertices_step + 6]
+
+			new_mesh.vertices[vi] = vertex(
+				vec3(x, y, z),
+				vec3(nx, ny, nz)
 			)
 		end
 		-- Then filling the faces array

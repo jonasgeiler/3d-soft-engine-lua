@@ -3,15 +3,15 @@ local vec3 = require('lib.vec3')
 
 ---Represents a mesh
 ---@class mesh
----@overload fun(vertices: vec3[]?, faces: face[]?, rotation: vec3?, position: vec3?): mesh
+---@overload fun(vertices: vertex[]?, faces: face[]?, rotation: vec3?, position: vec3?): mesh
 ---@field position vec3
 ---@field rotation vec3
----@field vertices vec3[]
+---@field vertices vertex[]
 ---@field faces face[]
 local mesh = class()
 
 ---Init the mesh
----@param vertices vec3[]?
+---@param vertices vertex[]?
 ---@param faces face[]?
 ---@param rotation vec3?
 ---@param position vec3?
