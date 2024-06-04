@@ -2,13 +2,15 @@ local assert = assert
 local io = io
 local type = type
 local math = math
+
 local class = require('lib.class')
+local fenster = require('fenster')
+local json = require('dkjson')
+
 local Vector3 = require('lib.vector3')
 local Matrix = require('lib.matrix')
-local dkjson = require('dkjson')
 local Mesh = require('lib.mesh')
 local Face = require('lib.face')
-local fenster = require('fenster')
 local Vertex = require('lib.vertex')
 local ScanLineData = require('lib.scanlinedata')
 local Material = require('lib.material')
@@ -494,7 +496,7 @@ end
 ---@nodiscard
 function Device:load_json_file(filename)
 	local file = assert(io.open(filename, 'r'))
-	local json_object = dkjson.decode(file:read('*all'))
+	local json_object = json.decode(file:read('*all'))
 	file:close()
 
 	-- Validate the JSON object

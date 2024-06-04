@@ -1,4 +1,5 @@
 local math = math
+
 local class = require('lib.class')
 
 ---@class Matrix

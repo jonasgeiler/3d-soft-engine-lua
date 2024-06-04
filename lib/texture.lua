@@ -3,6 +3,7 @@ local io = io
 local string = string
 local table = table
 local math = math
+
 local class = require('lib.class')
 local fenster = require('fenster')
 
