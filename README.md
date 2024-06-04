@@ -8,19 +8,8 @@ Some time ago I wanted to learn more about 3D rasterizers, so I read this tutori
 > [!WARNING]
 > This project is currently in development!
 
-## Screenshot
+## Screenshots
 
-![Screenshot](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/20ba15aa-7e18-4a91-abb3-a485d3b83396)
-
-## To Do
-
-- [X] Part 1 - Writing the core logic for camera, mesh & device object
-- [X] Part 2 - Drawing lines and triangles to obtain a wireframe rendering
-- [X] Part 3 - Loading meshes exported from Blender in a JSON format
-- [X] Part 4 - Filling the triangle with rasterization and using a Z-Buffer
-- [X] Part 5 - Handling light with:
-  - [X] Flat Shading
-  - [X] Gouraud Shading
-- [X] Part 6 - Applying:
-  - [X] Texture mapping
-  - [X] Back-face culling
+![Screenshot - Monkey](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/20ba15aa-7e18-4a91-abb3-a485d3b83396)
+![Screenshot - Teapot](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/44c0f02f-049e-4c3c-978b-12b9f6df1c68)
+![Screenshot - Torus](https://github.com/jonasgeiler/3d-rasterizer-lua/assets/10259118/dfff8735-3f32-4b61-a0f3-0897d64c9dad)
