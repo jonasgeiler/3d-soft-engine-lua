@@ -11,14 +11,13 @@ local dev = device(window)
 cam.position = vec3(0, 0, 10)
 cam.target = vec3(0, 0, 0)
 
-local meshes = dev:load_json_file('./assets/torus/model.babylon')
+local meshes = dev:load_json_file('./assets/monkey.babylon')
 
 while dev:present() do
 	dev:clear()
 
 	for mi = 1, #meshes do
 		local mesh = meshes[mi]
-		mesh.rotation.x = mesh.rotation.x + 0.5 * dev.window.delta
 		mesh.rotation.y = mesh.rotation.y + 0.5 * dev.window.delta
 	end
 

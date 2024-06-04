@@ -11,6 +11,9 @@ local face = require('lib.face')
 local fenster = require('fenster')
 local vertex = require('lib.vertex')
 local scan_line_data = require('lib.scan_line_data')
+local material = require('lib.material')
+local vec2 = require('lib.vec2')
+local texture = require('lib.texture')
 
 ---Represents the rendering device (window)
 ---@class device
@@ -95,7 +98,12 @@ function device:project(vert, trans_mat, world)
 	local x = point_2d.x * self.width + self.half_width
 	local y = -point_2d.y * self.height + self.half_height
 
-	return vertex(vec3(x, y, point_2d.z), normal_3d_world, point_3d_world)
+	return vertex(
+		vec3(x, y, point_2d.z),
+		normal_3d_world,
+		point_3d_world,
+		vert.texture_coordinates
+	)
 end
 
 ---Calls put_pixel but does the clipping operation before
@@ -137,13 +145,12 @@ end
 ---@param vb vertex
 ---@param vc vertex
 ---@param vd vertex
----@param color integer
-function device:process_scan_line(data, va, vb, vc, vd, color)
+---@param tex texture?
+function device:process_scan_line(data, va, vb, vc, vd, tex)
 	local pa = va.coordinates
 	local pb = vb.coordinates
 	local pc = vc.coordinates
 	local pd = vd.coordinates
-	local color_r, color_g, color_b = fenster.rgb(color)
 
 	-- Thanks to current Y, we can compute the gradient to compute others values like
 	-- the starting X (sx) and ending X (ex) to draw between
@@ -158,20 +165,34 @@ function device:process_scan_line(data, va, vb, vc, vd, color)
 	local z1 = self:interpolate(pa.z, pb.z, gradient1)
 	local z2 = self:interpolate(pc.z, pd.z, gradient2)
 
+	-- Interpolating normals on Y
 	local snl = self:interpolate(data.ndotla, data.ndotlb, gradient1)
 	local enl = self:interpolate(data.ndotlc, data.ndotld, gradient2)
+
+	-- Interpolating texture coordinates on Y
+	local su = self:interpolate(data.ua, data.ub, gradient1)
+	local eu = self:interpolate(data.uc, data.ud, gradient2)
+	local sv = self:interpolate(data.va, data.vb, gradient1)
+	local ev = self:interpolate(data.vc, data.vd, gradient2)
 
 	-- Drawing a line from left (sx) to right (ex)
 	for x = sx, ex - 1 do
 		local gradient = (x - sx) / (ex - sx)
+
+		-- Interpolating Z, normal and texture coordinates on X
 		local z = self:interpolate(z1, z2, gradient)
 		local ndotl = self:interpolate(snl, enl, gradient)
+		local u = self:interpolate(su, eu, gradient)
+		local v = self:interpolate(sv, ev, gradient)
 
-		-- Changing the color value using the cosine of the angle
-		-- between the light vector and the normal vector
-		local r = math.floor(color_r * ndotl)
-		local g = math.floor(color_g * ndotl)
-		local b = math.floor(color_b * ndotl)
+		local texture_color = tex and tex:map(u, v) or 0xffffff
+		local texture_color_r, texture_color_g, texture_color_b = fenster.rgb(texture_color)
+
+		-- Changing the native color value using the cosine of the angle
+		-- between the light vector and the normal vector and the texture color
+		local r = math.floor(texture_color_r * ndotl)
+		local g = math.floor(texture_color_g * ndotl)
+		local b = math.floor(texture_color_b * ndotl)
 		self:draw_point(vec3(x, data.curr_y, z), fenster.rgb(r, g, b))
 	end
 end
@@ -194,8 +215,8 @@ end
 ---@param v1 vertex
 ---@param v2 vertex
 ---@param v3 vertex
----@param color integer
-function device:draw_triangle(v1, v2, v3, color)
+---@param tex texture?
+function device:draw_triangle(v1, v2, v3, tex)
 	-- Sorting the points in order to always have this order on screen p1, p2 & p3
 	-- with p1 always up (thus having the Y the lowest possible to be near the top screen)
 	-- then p2 between p1 & p3
@@ -241,7 +262,6 @@ function device:draw_triangle(v1, v2, v3, color)
 		d_p1_p3 = 0
 	end
 
-
 	if d_p1_p2 > d_p1_p3 then
 		for y = math.floor(p1.y), math.floor(p3.y) do
 			data.curr_y = y
@@ -251,13 +271,34 @@ function device:draw_triangle(v1, v2, v3, color)
 				data.ndotlb = nl3
 				data.ndotlc = nl1
 				data.ndotld = nl2
-				self:process_scan_line(data, v1, v3, v1, v2, color)
+
+				data.ua = v1.texture_coordinates.x
+				data.ub = v3.texture_coordinates.x
+				data.uc = v1.texture_coordinates.x
+				data.ud = v2.texture_coordinates.x
+
+				data.va = v1.texture_coordinates.y
+				data.vb = v3.texture_coordinates.y
+				data.vc = v1.texture_coordinates.y
+				data.vd = v2.texture_coordinates.y
+				self:process_scan_line(data, v1, v3, v1, v2, tex)
 			else
 				data.ndotla = nl1
 				data.ndotlb = nl3
 				data.ndotlc = nl2
 				data.ndotld = nl3
-				self:process_scan_line(data, v1, v3, v2, v3, color)
+
+				data.ua = v1.texture_coordinates.x
+				data.ub = v3.texture_coordinates.x
+				data.uc = v2.texture_coordinates.x
+				data.ud = v3.texture_coordinates.x
+
+				data.va = v1.texture_coordinates.y
+				data.vb = v3.texture_coordinates.y
+				data.vc = v2.texture_coordinates.y
+				data.vd = v3.texture_coordinates.y
+
+				self:process_scan_line(data, v1, v3, v2, v3, tex)
 			end
 		end
 	else
@@ -269,13 +310,35 @@ function device:draw_triangle(v1, v2, v3, color)
 				data.ndotlb = nl2
 				data.ndotlc = nl1
 				data.ndotld = nl3
-				self:process_scan_line(data, v1, v2, v1, v3, color)
+
+				data.ua = v1.texture_coordinates.x
+				data.ub = v2.texture_coordinates.x
+				data.uc = v1.texture_coordinates.x
+				data.ud = v3.texture_coordinates.x
+
+				data.va = v1.texture_coordinates.y
+				data.vb = v2.texture_coordinates.y
+				data.vc = v1.texture_coordinates.y
+				data.vd = v3.texture_coordinates.y
+
+				self:process_scan_line(data, v1, v2, v1, v3, tex)
 			else
 				data.ndotla = nl2
 				data.ndotlb = nl3
 				data.ndotlc = nl1
 				data.ndotld = nl3
-				self:process_scan_line(data, v2, v3, v1, v3, color)
+
+				data.ua = v2.texture_coordinates.x
+				data.ub = v3.texture_coordinates.x
+				data.uc = v1.texture_coordinates.x
+				data.ud = v3.texture_coordinates.x
+
+				data.va = v2.texture_coordinates.y
+				data.vb = v3.texture_coordinates.y
+				data.vc = v1.texture_coordinates.y
+				data.vd = v3.texture_coordinates.y
+
+				self:process_scan_line(data, v2, v3, v1, v3, tex)
 			end
 		end
 	end
@@ -325,11 +388,7 @@ function device:render(camera, meshes)
 			local point_b = self:project(vertex_b, transform_matrix, world_matrix)
 			local point_c = self:project(vertex_c, transform_matrix, world_matrix)
 
-			--local color = 0.25 + (((fi - 1) % curr_mesh_faces_count) / curr_mesh_faces_count) * 0.75
-			--local r = math.floor(255 * color)
-			--local g = math.floor(255 * color)
-			--local b = math.floor(255 * color)
-			self:draw_triangle(point_a, point_b, point_c, 0xffffff)
+			self:draw_triangle(point_a, point_b, point_c, curr_mesh.tex)
 		end
 	end
 end
@@ -339,6 +398,17 @@ end
 ---@return mesh[]
 ---@nodiscard
 function device:create_meshes_from_json(json_object)
+	local materials = {} ---@type table<string, material>
+	for mi = 1, #json_object.materials do
+		local id = json_object.materials[mi].id ---@type string
+		local diffuse_texture = json_object.materials[mi].diffuseTexture ---@type {name: string}
+
+		if diffuse_texture then
+			local tex = texture('./assets/' .. diffuse_texture.name)
+			materials[id] = material(tex)
+		end
+	end
+
 	local meshes = {} ---@type mesh[]
 	for mi = 1, #json_object.meshes do
 		local vertices = json_object.meshes[mi].vertices ---@type number[]
@@ -378,6 +448,13 @@ function device:create_meshes_from_json(json_object)
 				vec3(x, y, z),
 				vec3(nx, ny, nz)
 			)
+
+			if uv_count > 0 then
+				-- Loading the texture coordinates
+				local u = vertices[(vi - 1) * vertices_step + 7]
+				local v = vertices[(vi - 1) * vertices_step + 8]
+				new_mesh.vertices[vi].texture_coordinates = vec2(u, v)
+			end
 		end
 		-- Then filling the faces array
 		for fi = 1, faces_count do
@@ -394,6 +471,11 @@ function device:create_meshes_from_json(json_object)
 			json_object.meshes[mi].position[2],
 			json_object.meshes[mi].position[3]
 		)
+
+		if uv_count > 0 then
+			local mesh_texture_id = json_object.meshes[mi].materialId ---@type string
+			new_mesh.tex = materials[mesh_texture_id].tex
+		end
 
 		meshes[#meshes + 1] = new_mesh
 	end
