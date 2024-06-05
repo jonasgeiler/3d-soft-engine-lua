@@ -158,6 +158,8 @@ end
 ---@param vertex Vector3
 ---@param normal Vector3
 ---@param light_position Vector3
+---@return number
+---@nodiscard
 function Device.compute_ndotl(vertex, normal, light_position)
 	local light_direction = light_position - vertex
 
@@ -306,6 +308,7 @@ function Device:draw_triangle(v1, v2, v3, texture)
 				data.vb = v3.texture_coordinates.y
 				data.vc = v1.texture_coordinates.y
 				data.vd = v2.texture_coordinates.y
+
 				self:process_scan_line(data, v1, v3, v1, v2, texture)
 			else
 				data.ndotla = nl1
@@ -373,7 +376,6 @@ end
 ---@param camera Camera
 ---@param meshes Mesh[]
 function Device:render(camera, meshes)
-	-- TODO: Cache theses matrices
 	local view_matrix = Matrix.look_at_lh(
 		camera.position,
 		camera.target,
@@ -405,6 +407,8 @@ function Device:render(camera, meshes)
 
 		for fi = 1, #curr_mesh.faces do
 			local curr_face = curr_mesh.faces[fi]
+
+			-- Render this face
 			local vertex_a = curr_mesh.vertices[curr_face.a]
 			local vertex_b = curr_mesh.vertices[curr_face.b]
 			local vertex_c = curr_mesh.vertices[curr_face.c]
