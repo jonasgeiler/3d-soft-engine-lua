@@ -38,7 +38,8 @@ Download the repository and install the dependencies with `luarocks`:
 
 ```shell
 $ luarocks install --only-deps 3d-soft-engine-dev-1.rockspec
-# or manually
+
+# OR, manually install dependencies:
 $ luarocks install fenster
 $ luarocks install dkjson
 ```
