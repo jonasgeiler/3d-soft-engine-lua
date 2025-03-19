@@ -20,3 +20,7 @@
 *.src.rock
 *.zip
 *.tar.gz
+/luarocks
+/lua
+/lua_modules
+/.luarocks
