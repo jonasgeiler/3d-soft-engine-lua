@@ -48,7 +48,8 @@ Afterwards, run [`main.lua`](./main.lua):
 
 ```shell
 $ luajit ./main.lua
-# or
+
+# OR, slower:
 $ lua5.1 ./main.lua
 ```
 
