@@ -29,8 +29,13 @@ The code is a bit messy though.
 
 ## Requirements
 
-- LuaJIT 2.1 (recommended) or Lua 5.1 (newer Lua versions might work but not tested)
+- [LuaJIT 2.1](https://luajit.org/) (_**highly recommended**_) or [Lua 5.1](https://www.lua.org/) (newer Lua versions might work but not tested)
+  > **💡 Tip:** On Arch Linux, you can easily install both with `pacman -S luajit lua51`.
 - [LuaRocks](https://luarocks.org/)
+  > **💡 Tip:** On Arch Linux, you can easily install it with `pacman -S luarocks`.
+  >
+  > **💬 Important:** Make sure you configure LuaRocks to use Lua 5.1 (even when you use LuaJIT 2.1)
+  > by either using the `--lua-version=5.1` flag every time, or by configuring it with `luarocks config lua_version 5.1`.
 
 ## How to try
 
