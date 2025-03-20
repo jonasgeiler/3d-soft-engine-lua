@@ -29,7 +29,7 @@ The code is a bit messy though.
 
 ## Requirements
 
-- LuaJIT 2.1 or Lua 5.1 (newer Lua versions might work but not tested)
+- LuaJIT 2.1 (recommended) or Lua 5.1 (newer Lua versions might work but not tested)
 - [LuaRocks](https://luarocks.org/)
 
 ## How to try
