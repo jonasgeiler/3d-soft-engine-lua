@@ -9,18 +9,14 @@
 .vscode/
 !/.vscode/extensions.json
 
-# Temporary Files
-/test.lua
-
 # LuaRocks
-/luarocks/
-/lua/
-/lua_modules/
-/.luarocks/
+luarocks/
+lua/
+lua_modules/
+.luarocks/
 *.src.rock
 *.zip
 *.tar.gz
-/luarocks
-/lua
-/lua_modules
-/.luarocks
+
+# Temporary Files
+/test.lua
